@@ -1,0 +1,18 @@
+{
+  "name": "@badger/shared",
+  "version": "1.0.0",
+  "description": "Shared configurations and data for BadgerBadge",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./achievements": "./src/achievements.js",
+    "./contracts": "./src/contracts.js",
+    "./abi": "./src/abi/Achievements.json"
+  },
+  "scripts": {
+    "update-abi": "node scripts/update-abi.js"
+  },
+  "keywords": ["badgerbadge", "achievements", "nft"],
+  "license": "MIT"
+}
