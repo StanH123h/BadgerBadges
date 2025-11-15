@@ -1,39 +1,39 @@
-# 完整设置指南
+# Complete Setup Guide
 
-## 第一次设置（详细步骤）
+## First Time Setup (Detailed Steps)
 
-### 步骤 1: 安装 pnpm 和依赖
+### Step 1: Install pnpm and Dependencies
 
 ```bash
-# 安装 pnpm
+# Install pnpm
 npm install -g pnpm
 
-# 在项目根目录
+# In project root directory
 cd /path/to/badgerbadge
 pnpm install
 ```
 
-### 步骤 2: 生成密钥对
+### Step 2: Generate Key Pairs
 
-你需要两个私钥：
+You need two private keys:
 
-1. **DEPLOYER_KEY**: 用于部署合约
-2. **BACKEND_SIGNER_KEY**: 用于后端签名（**这个非常重要！**）
+1. **DEPLOYER_KEY**: For deploying contracts
+2. **BACKEND_SIGNER_KEY**: For backend signing (**This is very important!**)
 
-**生成新密钥（推荐用于开发）：**
+**Generate new keys (recommended for development):**
 
 ```bash
 cd packages/contracts
 node -e "const ethers = require('ethers'); const wallet = ethers.Wallet.createRandom(); console.log('Address:', wallet.address); console.log('Private Key:', wallet.privateKey);"
 ```
 
-运行两次，分别得到两个密钥对。
+Run this twice to get two key pairs.
 
-**或使用 Hardhat 测试账户（仅本地开发）：**
+**Or use Hardhat test accounts (local development only):**
 
-启动 `pnpm dev:contracts` 后，会看到 10 个测试账户的私钥。
+After starting `pnpm dev:contracts`, you'll see private keys for 10 test accounts.
 
-### 步骤 3: 配置环境变量
+### Step 3: Configure Environment Variables
 
 **packages/contracts/.env**
 
@@ -42,16 +42,16 @@ cd packages/contracts
 cp .env.example .env
 ```
 
-编辑 `.env`:
+Edit `.env`:
 
 ```env
-# 部署账户私钥（有 ETH 的账户）
+# Deployer account private key (account with ETH)
 DEPLOYER_KEY=0x...
 
-# 后端签名私钥（可以和 DEPLOYER_KEY 相同，也可以不同）
+# Backend signer private key (can be same as DEPLOYER_KEY or different)
 BACKEND_SIGNER_KEY=0x...
 
-# Sepolia RPC（可选，仅部署到测试网时需要）
+# Sepolia RPC (optional, only needed when deploying to testnet)
 SEPOLIA_RPC=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 ```
 
@@ -62,57 +62,57 @@ cd apps/web
 cp .env.local.example .env.local
 ```
 
-编辑 `.env.local`:
+Edit `.env.local`:
 
 ```env
-# 必须和 packages/contracts/.env 中的 BACKEND_SIGNER_KEY 一致！
+# Must match BACKEND_SIGNER_KEY in packages/contracts/.env!
 BACKEND_SIGNER_KEY=0x...
 
-# 网络（localhost 或 sepolia）
+# Network (localhost or sepolia)
 NEXT_PUBLIC_NETWORK=localhost
 
-# 合约地址（部署后填写）
+# Contract address (fill in after deployment)
 NEXT_PUBLIC_ACHIEVEMENTS_CONTRACT_ADDRESS=
 
-# Sepolia RPC（可选）
+# Sepolia RPC (optional)
 NEXT_PUBLIC_SEPOLIA_RPC=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 ```
 
-### 步骤 4: 编译合约
+### Step 4: Compile Contracts
 
 ```bash
-# 在项目根目录
+# In project root directory
 pnpm build:contracts
 ```
 
-应该看到：
+You should see:
 
 ```
 Compiled 1 Solidity file successfully
 ```
 
-### 步骤 5: 复制 ABI
+### Step 5: Copy ABI
 
 ```bash
 pnpm --filter @badger/shared update-abi
 ```
 
-应该看到：
+You should see:
 
 ```
 ✅ ABI updated successfully!
 ```
 
-### 步骤 6: 启动本地节点
+### Step 6: Start Local Node
 
-**打开新终端（终端 1）：**
+**Open a new terminal (Terminal 1):**
 
 ```bash
 cd /path/to/badgerbadge
 pnpm dev:contracts
 ```
 
-你会看到：
+You'll see:
 
 ```
 Started HTTP and WebSocket JSON-RPC server at http://127.0.0.1:8545/
@@ -124,18 +124,18 @@ Private Key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ...
 ```
 
-**保持这个终端运行！**
+**Keep this terminal running!**
 
-### 步骤 7: 部署合约
+### Step 7: Deploy Contracts
 
-**打开新终端（终端 2）：**
+**Open a new terminal (Terminal 2):**
 
 ```bash
 cd /path/to/badgerbadge
 pnpm deploy:local
 ```
 
-你会看到：
+You'll see:
 
 ```
 🦡 Deploying BadgerBadge Achievements contract...
@@ -146,73 +146,73 @@ Backend signer address: 0x...
 ✅ Achievements contract deployed to: 0x5FbDB2315678afecb367f032d93F642f64180aa3
 ```
 
-**重要：复制合约地址！**
+**Important: Copy the contract address!**
 
-### 步骤 8: 更新合约地址
+### Step 8: Update Contract Address
 
-1. 编辑 `packages/shared/src/contracts.js`:
+1. Edit `packages/shared/src/contracts.js`:
 
 ```javascript
 localhost: {
   chainId: 31337,
-  achievementsAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // 👈 粘贴这里
+  achievementsAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // 👈 Paste here
   rpcUrl: 'http://127.0.0.1:8545',
 },
 ```
 
-2. 编辑 `apps/web/.env.local`:
+2. Edit `apps/web/.env.local`:
 
 ```env
 NEXT_PUBLIC_ACHIEVEMENTS_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
 ```
 
-### 步骤 9: 启动前端
+### Step 9: Start Frontend
 
-**打开新终端（终端 3）：**
+**Open a new terminal (Terminal 3):**
 
 ```bash
 cd /path/to/badgerbadge
 pnpm dev:web
 ```
 
-访问 http://localhost:3000
+Visit http://localhost:3000
 
-### 步骤 10: 配置 MetaMask
+### Step 10: Configure MetaMask
 
-1. 打开 MetaMask
-2. 点击网络下拉菜单 → "添加网络" → "手动添加网络"
-3. 填写：
-   - **网络名称**: Hardhat Local
+1. Open MetaMask
+2. Click network dropdown → "Add Network" → "Add Network Manually"
+3. Fill in:
+   - **Network Name**: Hardhat Local
    - **RPC URL**: http://127.0.0.1:8545
-   - **链 ID**: 31337
-   - **货币符号**: ETH
-4. 保存
+   - **Chain ID**: 31337
+   - **Currency Symbol**: ETH
+4. Save
 
-5. 导入测试账户：
-   - 点击账户图标 → "导入账户"
-   - 粘贴终端 1 中显示的私钥（Account #0）
-   - 导入
+5. Import test account:
+   - Click account icon → "Import Account"
+   - Paste the private key shown in Terminal 1 (Account #0)
+   - Import
 
-### 步骤 11: 测试认领成就
+### Step 11: Test Claiming Achievement
 
-1. 刷新页面 http://localhost:3000
-2. 点击 "Connect Wallet"
-3. 授权 MetaMask 连接
-4. 点击任意成就的 "Claim Achievement" 按钮
-5. 允许浏览器获取你的位置（或使用模拟位置）
-6. 等待后端验证
-7. 确认 MetaMask 交易
-8. 等待交易确认
+1. Refresh page http://localhost:3000
+2. Click "Connect Wallet"
+3. Authorize MetaMask connection
+4. Click "Claim Achievement" button on any achievement
+5. Allow browser to get your location (or use simulated location)
+6. Wait for backend validation
+7. Confirm MetaMask transaction
+8. Wait for transaction confirmation
 
-成功！🎉
+Success! 🎉
 
-## 验证一切正常
+## Verify Everything Works
 
-### 检查后端配置
+### Check Backend Configuration
 
-访问 http://localhost:3000/api/claim
+Visit http://localhost:3000/api/claim
 
-应该看到：
+You should see:
 
 ```json
 {
@@ -224,118 +224,118 @@ pnpm dev:web
 }
 ```
 
-### 检查合约
+### Check Contract
 
-在终端运行：
+Run in terminal:
 
 ```bash
 cd packages/contracts
 npx hardhat console --network localhost
 ```
 
-然后：
+Then:
 
 ```javascript
 const Achievements = await ethers.getContractFactory('Achievements');
-const achievements = await Achievements.attach('0x5FbDB...');  // 你的合约地址
-await achievements.signer();  // 应该返回 backend signer 地址
+const achievements = await Achievements.attach('0x5FbDB...');  // Your contract address
+await achievements.signer();  // Should return backend signer address
 ```
 
-## 常见问题排查
+## Troubleshooting Common Issues
 
-### 问题 1: "Cannot find module '@badger/shared'"
+### Issue 1: "Cannot find module '@badger/shared'"
 
-**原因**: workspace 依赖未正确安装
+**Cause**: Workspace dependencies not properly installed
 
-**解决**:
+**Solution**:
 ```bash
 rm -rf node_modules packages/*/node_modules apps/*/node_modules
 pnpm install
 ```
 
-### 问题 2: "Invalid signature"
+### Issue 2: "Invalid signature"
 
-**原因**: 后端私钥与合约中的 signer 不一致
+**Cause**: Backend private key doesn't match signer in contract
 
-**检查**:
+**Check**:
 
-1. 查看部署日志中的 "Backend signer address"
-2. 在合约中验证：`await achievements.signer()`
-3. 检查 `apps/web/.env.local` 中的 `BACKEND_SIGNER_KEY`
-4. 确保私钥对应的地址一致
+1. Check "Backend signer address" in deployment logs
+2. Verify in contract: `await achievements.signer()`
+3. Check `BACKEND_SIGNER_KEY` in `apps/web/.env.local`
+4. Ensure addresses corresponding to private keys match
 
-**解决**: 重新部署合约或更新 `.env.local` 中的私钥
+**Solution**: Redeploy contract or update private key in `.env.local`
 
-### 问题 3: MetaMask 显示错误的 nonce
+### Issue 3: MetaMask shows wrong nonce
 
-**原因**: 本地节点重启后，MetaMask 的 nonce 缓存未更新
+**Cause**: MetaMask nonce cache not updated after local node restart
 
-**解决**:
-1. MetaMask 设置 → 高级 → 清除活动和 nonce 数据
-2. 刷新页面
+**Solution**:
+1. MetaMask Settings → Advanced → Clear Activity & Nonce Data
+2. Refresh page
 
-### 问题 4: ABI 相关错误
+### Issue 4: ABI-related errors
 
-**原因**: ABI 未更新或损坏
+**Cause**: ABI not updated or corrupted
 
-**解决**:
+**Solution**:
 ```bash
 pnpm build:contracts
 pnpm --filter @badger/shared update-abi
-# 重启 Next.js 服务器
+# Restart Next.js server
 ```
 
-### 问题 5: 交易总是失败
+### Issue 5: Transactions always fail
 
-**检查清单**:
+**Checklist**:
 
-1. MetaMask 连接到正确的网络（Chain ID 31337）
-2. 账户有足够的 ETH
-3. 合约地址正确
-4. 后端 API 返回了有效签名（检查浏览器控制台）
-5. 签名未过期（5 分钟有效期）
+1. MetaMask connected to correct network (Chain ID 31337)
+2. Account has sufficient ETH
+3. Contract address is correct
+4. Backend API returned valid signature (check browser console)
+5. Signature not expired (5 minute validity)
 
-## 部署到 Sepolia（可选）
+## Deploy to Sepolia (Optional)
 
-### 1. 获取 Sepolia ETH
+### 1. Get Sepolia ETH
 
-访问 https://sepoliafaucet.com/ 或 https://faucet.quicknode.com/ethereum/sepolia
+Visit https://sepoliafaucet.com/ or https://faucet.quicknode.com/ethereum/sepolia
 
-### 2. 更新环境变量
+### 2. Update Environment Variables
 
-`.env` 和 `.env.local`:
+`.env` and `.env.local`:
 
 ```env
 SEPOLIA_RPC=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
 NEXT_PUBLIC_NETWORK=sepolia
 ```
 
-### 3. 部署
+### 3. Deploy
 
 ```bash
 pnpm deploy:sepolia
 ```
 
-### 4. 更新合约地址
+### 4. Update Contract Address
 
-同步骤 8，但更新 `sepolia.achievementsAddress`
+Same as Step 8, but update `sepolia.achievementsAddress`
 
-### 5. 验证合约（可选）
+### 5. Verify Contract (Optional)
 
 ```bash
 cd packages/contracts
 npx hardhat verify --network sepolia YOUR_CONTRACT_ADDRESS "BACKEND_SIGNER_ADDRESS" "https://api.badgerbadge.uw.edu/metadata/"
 ```
 
-## 下一步
+## Next Steps
 
-现在你的本地开发环境已经完全设置好了！
+Your local development environment is now fully set up!
 
-你可以：
+You can:
 
-1. 添加新的成就定义（`packages/shared/src/achievements.js`）
-2. 实现真实的验证逻辑（`apps/web/app/api/claim/route.js`）
-3. 自定义前端 UI（`apps/web/app/page.jsx`）
-4. 扩展智能合约功能（`packages/contracts/contracts/Achievements.sol`）
+1. Add new achievement definitions (`packages/shared/src/achievements.js`)
+2. Implement real validation logic (`apps/web/app/api/claim/route.js`)
+3. Customize frontend UI (`apps/web/app/page.jsx`)
+4. Extend smart contract functionality (`packages/contracts/contracts/Achievements.sol`)
 
-祝编码愉快！🦡
+Happy coding! 🦡
