@@ -28,6 +28,7 @@ typechain-types/
 *.pem
 .idea/
 .vscode/
+.claude/
 
 # Debug
 npm-debug.log*
