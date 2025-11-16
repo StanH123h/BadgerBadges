@@ -18,6 +18,8 @@ import { motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import Tilt from 'react-parallax-tilt';
 import NFTBadge from '../components/NFTBadge';
+import CustomToast from '../components/CustomToast';
+import EmojiConfetti from '../components/EmojiConfetti';
 
 // Solana Configuration
 const PROGRAM_ID = new PublicKey('GcqYVPhMUUdqpBxVNcLK8otKGzWbxqWiMft2mcDvr7dZ');
@@ -30,6 +32,8 @@ export default function SolanaAchievementsPage() {
   const [claimedStatus, setClaimedStatus] = useState({}); // Track which achievements are claimed
   const [mintedNFTs, setMintedNFTs] = useState([]); // Store minted NFTs for display
   const [particles, setParticles] = useState([]); // Particle animation data
+  const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '', details: '', confettiEmoji: '' });
+  const [confetti, setConfetti] = useState({ show: false, emoji: '' });
   const connection = useMemo(() => new Connection(RPC_URL, 'confirmed'), []);
   const headerRef = useRef(null);
 
@@ -55,7 +59,13 @@ export default function SolanaAchievementsPage() {
       const { solana } = window;
 
       if (!solana?.isPhantom) {
-        alert('Please install Phantom Wallet!\nVisit:https://phantom.app/');
+        setToast({
+          show: true,
+          type: 'error',
+          title: '未安装 Phantom 钱包',
+          message: '请先安装 Phantom 钱包扩展',
+          details: 'https://phantom.app/'
+        });
         return;
       }
 
@@ -73,7 +83,13 @@ export default function SolanaAchievementsPage() {
       await checkClaimedAchievements(response.publicKey);
     } catch (error) {
       console.error('Failed to connect wallet:', error);
-      alert('Failed to connect wallet：' + error.message);
+      setToast({
+        show: true,
+        type: 'error',
+        title: '连接钱包失败',
+        message: '无法连接到 Phantom 钱包',
+        details: error.message
+      });
     }
   };
 
@@ -131,7 +147,13 @@ export default function SolanaAchievementsPage() {
   // Mint NFT Achievement
   const handleClaim = async (achievementId) => {
     if (!wallet) {
-      alert('Please connect Phantom wallet first!');
+      setToast({
+        show: true,
+        type: 'error',
+        title: '请先连接钱包',
+        message: '铸造 NFT 前需要先连接 Phantom 钱包',
+        details: ''
+      });
       return;
     }
 
@@ -264,29 +286,48 @@ export default function SolanaAchievementsPage() {
         timestamp: Date.now(),
       }]);
 
-      alert(`🎉 Achievement NFT "${achievement.name}" claimed successfully!\n\n${achievement.icon}\n\nTransaction signature:\n${signature}\n\nNFT Mint:\n${mintKeypair.publicKey.toString()}\n\nView on Solana Explorer:\nhttps://explorer.solana.com/tx/${signature}?cluster=devnet\n\nCheck your NFT in Phantom wallet "Collectibles" tab!`);
+      // Show success toast (confetti will trigger when user closes it)
+      setToast({
+        show: true,
+        type: 'success',
+        title: `🎉 成就 "${achievement.name}" 铸造成功！`,
+        message: `你已成功铸造 ${achievement.icon} NFT，快去 Phantom 钱包的"收藏品"标签查看吧！`,
+        details: `交易签名: ${signature.slice(0, 20)}...${signature.slice(-20)}`,
+        confettiEmoji: achievement.icon // Store emoji for confetti
+      });
 
     } catch (error) {
       console.error('❌ Mint failed:', error);
 
       let errorMessage = error.message;
+      let errorTitle = '铸造失败';
 
       // Parse error
       if (error.message.includes('0x0')) {
-        errorMessage = 'Achievement already claimed!';
+        errorTitle = '成就已被领取';
+        errorMessage = '你已经领取过这个成就了，无法重复铸造';
       } else if (error.message.includes('insufficient')) {
-        errorMessage = 'Insufficient SOL balance! Please get test SOL first.';
+        errorTitle = 'SOL 余额不足';
+        errorMessage = '你的钱包余额不足以支付交易费用，请先获取一些测试 SOL';
       } else if (error.message.includes('User rejected')) {
-        errorMessage = 'Transaction cancelled';
+        errorTitle = '交易已取消';
+        errorMessage = '你取消了交易签名';
       } else if (error.message.includes('already in use')) {
-        errorMessage = 'Achievement already claimed!';
+        errorTitle = '成就已被领取';
+        errorMessage = '你已经领取过这个成就了，无法重复铸造';
       } else if (error.logs) {
         console.log('Transaction logs:', error.logs);
         const errorLog = error.logs.find(log => log.includes('Error'));
         if (errorLog) errorMessage = errorLog;
       }
 
-      alert(`❌ Mint failed: ${errorMessage}\n\nSee console for details`);
+      setToast({
+        show: true,
+        type: 'error',
+        title: errorTitle,
+        message: errorMessage,
+        details: `详细错误信息请查看控制台`
+      });
     } finally {
       setClaiming(prev => ({ ...prev, [achievementId]: false }));
     }
@@ -694,95 +735,6 @@ export default function SolanaAchievementsPage() {
           })}
         </div>
 
-        {/* Minted NFTs Display Section */}
-        {mintedNFTs.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            style={{
-              marginTop: '4rem',
-              marginBottom: '3rem',
-            }}
-          >
-            <motion.h2
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              style={{
-                fontSize: '2.5rem',
-                fontWeight: 'bold',
-                color: 'white',
-                textAlign: 'center',
-                marginBottom: '2rem',
-                textShadow: '0 2px 10px rgba(0,0,0,0.3)',
-              }}
-            >
-              🏆 Your Minted Badges
-            </motion.h2>
-
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '2rem',
-              justifyContent: 'center',
-              alignItems: 'flex-start',
-            }}>
-              {mintedNFTs.map((nft, index) => (
-                <motion.div
-                  key={nft.timestamp}
-                  initial={{ opacity: 0, scale: 0.5, rotateY: -180 }}
-                  animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                  transition={{
-                    delay: index * 0.2,
-                    duration: 0.6,
-                    type: 'spring',
-                    stiffness: 100,
-                  }}
-                >
-                  <NFTBadge
-                    achievement={nft.achievement}
-                    mintNumber={nft.mintNumber}
-                    imageUrl={nft.imageUrl}
-                    signature={nft.signature}
-                  />
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Stats Section */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              style={{
-                marginTop: '2rem',
-                textAlign: 'center',
-                padding: '1.5rem',
-                background: 'rgba(255,255,255,0.1)',
-                backdropFilter: 'blur(10px)',
-                borderRadius: '1rem',
-                border: '1px solid rgba(255,255,255,0.2)',
-              }}
-            >
-              <p style={{
-                color: 'white',
-                fontSize: '1.125rem',
-                fontWeight: 'bold',
-                marginBottom: '0.5rem',
-              }}>
-                Total Badges Collected: {mintedNFTs.length}
-              </p>
-              <p style={{
-                color: '#fcc',
-                fontSize: '0.875rem',
-              }}>
-                Keep claiming more achievements to grow your collection! 🚀
-              </p>
-            </motion.div>
-          </motion.div>
-        )}
-
         {/* Info Footer */}
         <motion.footer
           initial={{ opacity: 0 }}
@@ -831,6 +783,29 @@ export default function SolanaAchievementsPage() {
           scroll-behavior: smooth;
         }
       `}</style>
+
+      {/* Custom Toast Notification */}
+      <CustomToast
+        show={toast.show}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+        details={toast.details}
+        onClose={() => {
+          // Trigger confetti when closing success toast
+          if (toast.type === 'success' && toast.confettiEmoji) {
+            setConfetti({ show: true, emoji: toast.confettiEmoji });
+          }
+          setToast({ show: false, type: 'success', title: '', message: '', details: '', confettiEmoji: '' });
+        }}
+      />
+
+      {/* Emoji Confetti Animation */}
+      <EmojiConfetti
+        show={confetti.show}
+        emoji={confetti.emoji}
+        onComplete={() => setConfetti({ show: false, emoji: '' })}
+      />
     </div>
   );
 }
