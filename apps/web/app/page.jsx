@@ -384,7 +384,7 @@ export default function SolanaAchievementsPage() {
             }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            🦡 BadgerBadge Achievements
+            <img src="/logo.png" alt="BadgerBadge" style={{ height: '3.5rem', width: 'auto' }} />
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
@@ -575,13 +575,13 @@ export default function SolanaAchievementsPage() {
                 glareMaxOpacity={0.3}
                 glareColor="#ffffff"
                 glarePosition="all"
+                style={{ borderRadius: '1rem', overflow: 'hidden' }}
               >
                 <motion.div
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
                   whileHover={{
-                    y: -8,
                     boxShadow: '0 20px 40px rgba(197, 5, 12, 0.2)',
                     transition: { duration: 0.2 }
                   }}

@@ -58,6 +58,7 @@ export default function NFTBadge({ achievement, mintNumber, imageUrl, signature 
         glareMaxOpacity={0.5}
         glareColor="#ffffff"
         glarePosition="all"
+        style={{ borderRadius: '1rem', overflow: 'hidden' }}
       >
         <div
           ref={badgeRef}
