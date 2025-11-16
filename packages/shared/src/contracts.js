@@ -8,23 +8,20 @@ export const CONTRACTS = {
   // Localhost (Hardhat node)
   localhost: {
     chainId: 31337,
-    achievementsAddress: '', // Fill after deploying to local node
     rpcUrl: 'http://127.0.0.1:8545',
   },
 
   // Sepolia testnet
   sepolia: {
     chainId: 11155111,
-    achievementsAddress: '', // Fill after deploying to Sepolia
-    rpcUrl: process.env.SEPOLIA_RPC || 'https://rpc.sepolia.org',
+    rpcUrl: process.env.NEXT_PUBLIC_SEPOLIA_RPC || 'https://rpc.sepolia.org',
     blockExplorer: 'https://sepolia.etherscan.io',
   },
 
   // Mainnet (for future)
   mainnet: {
     chainId: 1,
-    achievementsAddress: '',
-    rpcUrl: process.env.MAINNET_RPC || 'https://eth.llamarpc.com',
+    rpcUrl: process.env.NEXT_PUBLIC_MAINNET_RPC || 'https://eth.llamarpc.com',
     blockExplorer: 'https://etherscan.io',
   },
 };
@@ -33,18 +30,21 @@ export const CONTRACTS = {
  * Get contract config for a specific network
  */
 export function getContractConfig(networkName = 'localhost') {
-  return CONTRACTS[networkName];
+  // Allow override from NEXT_PUBLIC_NETWORK env var
+  const network = process.env.NEXT_PUBLIC_NETWORK || networkName;
+  return CONTRACTS[network];
 }
 
 /**
  * Get contract address for current network
+ * Always reads from NEXT_PUBLIC_ACHIEVEMENTS_CONTRACT_ADDRESS env var
  */
-export function getAchievementsAddress(networkName = 'localhost') {
-  const config = getContractConfig(networkName);
-  if (!config || !config.achievementsAddress) {
-    throw new Error(`Achievements contract not deployed on ${networkName}`);
+export function getAchievementsAddress() {
+  const address = process.env.NEXT_PUBLIC_ACHIEVEMENTS_CONTRACT_ADDRESS;
+  if (!address) {
+    throw new Error('NEXT_PUBLIC_ACHIEVEMENTS_CONTRACT_ADDRESS not set in environment');
   }
-  return config.achievementsAddress;
+  return address;
 }
 
 // ABI is imported from the generated artifacts
