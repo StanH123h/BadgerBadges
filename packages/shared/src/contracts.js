@@ -8,7 +8,7 @@ export const CONTRACTS = {
   // Localhost (Hardhat node)
   localhost: {
     chainId: 31337,
-    achievementsAddress: '', // Fill after deploying to local node
+    achievementsAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
     rpcUrl: 'http://127.0.0.1:8545',
   },
 
@@ -48,6 +48,5 @@ export function getAchievementsAddress(networkName = 'localhost') {
 }
 
 // ABI is imported from the generated artifacts
-// TODO: After compiling contracts, copy ABI here or import from artifacts
-// For now, export a placeholder
-export { default as AchievementsABI } from './abi/Achievements.json' assert { type: 'json' };
+import AchievementsABIData from './abi/Achievements.json' with { type: 'json' };
+export const AchievementsABI = AchievementsABIData;

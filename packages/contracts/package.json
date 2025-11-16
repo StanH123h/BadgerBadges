@@ -2,7 +2,6 @@
   "name": "@badger/contracts",
   "version": "1.0.0",
   "description": "BadgerBadge smart contracts",
-  "type": "module",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
@@ -11,8 +10,8 @@
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "hardhat": "^3.0.14"
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "hardhat": "^2.27.0"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.2.0",

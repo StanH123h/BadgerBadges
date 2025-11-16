@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(node setup-env.js:*)",
+      "Bash(cat:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm build:contracts:*)",
+      "Bash(pnpm --filter @badger/contracts compile:*)",
+      "Bash(npx hardhat compile:*)",
+      "Bash(pnpm --filter @badger/contracts add:*)",
+      "Bash(pnpm --filter @badger/shared update-abi:*)",
+      "Bash(pnpm dev:contracts:*)",
+      "Bash(npx hardhat node)",
+      "Bash(npx hardhat run:*)",
+      "Bash(pnpm --filter web dev:*)",
+      "Bash(pnpm dev)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

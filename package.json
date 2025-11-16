@@ -14,5 +14,6 @@
   },
   "keywords": ["web3", "nft", "achievements", "uw-madison"],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "type": "module"
 }
