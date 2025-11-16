@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
-import { getAchievementById } from '@badger/shared';
+import { getAchievementById } from '../../../../lib/shared';
 
 /**
  * NFT Metadata API
@@ -86,7 +86,7 @@ async function getAchievementIdFromContract(tokenId) {
     }
 
     // 导入 ABI
-    const { AchievementsABI } = await import('@badger/shared');
+    const { AchievementsABI } = await import('../../../lib/shared');
 
     // 连接到合约
     const provider = new ethers.JsonRpcProvider(rpcUrl);
@@ -97,7 +97,7 @@ async function getAchievementIdFromContract(tokenId) {
 
     // 将 bytes32 转换回字符串
     // 我们需要查找匹配的 achievementId
-    const ACHIEVEMENTS = await import('@badger/shared').then(m => m.ACHIEVEMENTS);
+    const ACHIEVEMENTS = await import('../../../lib/shared').then(m => m.ACHIEVEMENTS);
 
     for (const achievement of ACHIEVEMENTS) {
       const expectedBytes32 = ethers.id(achievement.id);

@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { Keypair } from '@solana/web3.js';
 import nacl from 'tweetnacl';
-import { getAchievementById } from '@badger/shared';
+import { getAchievementById } from '../../../lib/shared';
 
 // 从环境变量加载backend signer
 // Solana使用Ed25519密钥对，需要58字节的私钥

@@ -7,8 +7,8 @@
 
 import { useState, useMemo } from 'react';
 import { Connection, PublicKey, SystemProgram, TransactionInstruction, Transaction, Keypair } from '@solana/web3.js';
-import { ACHIEVEMENTS } from '@badger/shared';
-import { generateMetadataURI } from '../lib/metadata';
+import { ACHIEVEMENTS } from '../lib/shared';
+import { uploadNFTAssets } from '../lib/uploadImage';
 import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -146,8 +146,8 @@ export default function SolanaAchievementsPage() {
       try {
         const accountInfo = await connection.getAccountInfo(achievementStatePDA);
         if (accountInfo) {
-          // AchievementState 结构: authority(32) + total_minted(8)
-          const totalMinted = Number(accountInfo.data.readBigUInt64LE(32));
+          // AchievementState 结构: discriminator(8) + authority(32) + total_minted(8)
+          const totalMinted = Number(accountInfo.data.readBigUInt64LE(40));
           mintNumber = totalMinted + 1;
           console.log('📊 当前已铸造:', totalMinted, '→ 下一个编号:', mintNumber);
         }
@@ -155,10 +155,16 @@ export default function SolanaAchievementsPage() {
         console.warn('⚠️ 无法读取 total_minted，使用默认编号 #1');
       }
 
-      // 生成个性化 metadata URI (根据编号)
-      const metadataUri = generateMetadataURI(achievement, mintNumber);
-      console.log('🖼️ Metadata URI length:', metadataUri.length);
+      // 1. 上传图片和 metadata JSON 到 Supabase
+      console.log('📤 正在上传资源到 Supabase...');
+      const { imageUrl, metadataUrl } = await uploadNFTAssets(achievementId, achievement, mintNumber);
+      console.log('✅ 图片 URL:', imageUrl);
+      console.log('✅ Metadata URL:', metadataUrl);
+      console.log('🖼️ Metadata URI length:', metadataUrl.length);
       console.log('🎨 NFT 编号:', mintNumber);
+
+      // 使用 Supabase 的 metadata URL
+      const metadataUri = metadataUrl;
 
       // 生成新的 mint keypair
       const mintKeypair = Keypair.generate();

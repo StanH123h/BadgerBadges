@@ -13,8 +13,8 @@ import {
   getProgramId,
   mintAchievement,
   hasUserClaimed,
-} from '@badger/shared/solana-client';
-import { ACHIEVEMENTS } from '@badger/shared';
+} from '../lib/shared/solana-client';
+import { ACHIEVEMENTS } from '../lib/shared';
 
 export default function SolanaAchievementsPage() {
   const [wallet, setWallet] = useState(null);

@@ -36,10 +36,9 @@ export function generateSVGDataURI(icon, name, mintNumber) {
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 }
 
-// 生成 metadata URI (直接返回API URL)
+// 生成 metadata URI（返回 localhost API URL，开发用）
 export function generateMetadataURI(achievement, mintNumber) {
-  // 使用公网URL（通过 localtunnel）
-  // 这样 Phantom 钱包可以访问图片
-  const baseUrl = 'https://whole-buttons-smoke.loca.lt';
-  return `${baseUrl}/api/nft-metadata?id=${achievement.id}&n=${mintNumber}`;
+  // 开发环境直接用 localhost
+  // 注意：部署时需要改成真实的公网 URL
+  return `http://localhost:3001/api/nft-metadata?id=${achievement.id}&n=${mintNumber}`;
 }

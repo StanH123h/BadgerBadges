@@ -3,7 +3,7 @@
  * 访问: /api/nft-image?id=RAINY_DAY_2025&n=1
  */
 
-import { ACHIEVEMENTS } from '@badger/shared';
+import { ACHIEVEMENTS } from '../../../lib/shared';
 
 // 基于编号生成确定的随机颜色
 function generateRandomColor(seed) {

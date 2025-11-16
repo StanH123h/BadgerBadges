@@ -33,7 +33,13 @@
       "Bash(node /tmp/calculate-discriminator.mjs:*)",
       "Bash(node /tmp/calc-mint-discriminator.mjs:*)",
       "Bash(node /tmp/calculate-pda.mjs:*)",
-      "Bash(npx localtunnel:*)"
+      "Bash(npx localtunnel:*)",
+      "Bash(ngrok http:*)",
+      "Bash(npm i:*)",
+      "Bash(vercel login)",
+      "Bash(vercel --yes)",
+      "Bash(find:*)",
+      "Bash(vercel:*)"
     ],
     "deny": [],
     "ask": []
