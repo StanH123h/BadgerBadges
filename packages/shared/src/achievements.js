@@ -97,6 +97,21 @@ export const ACHIEVEMENTS = [
       // Consider requiring QR code scan in building for better verification
     },
   },
+  // Test NFT - Repeatable for testing/development
+  {
+    id: 'TEST_BADGE',
+    name: 'Test Badge',
+    description: 'Repeatable test badge for development and testing purposes',
+    category: 'test',
+    icon: '🧪',
+    isTestNFT: true,
+    maxSupply: 10000,
+    validationRules: {
+      type: 'test',
+      // No validation required for test NFT
+    },
+  },
+
   // Future academic achievements (commented out for now)
   // {
   //   id: 'ALL_A_SEMESTER_2025',

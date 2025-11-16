@@ -166,21 +166,29 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Achievement ID is required' }, { status: 400 });
     }
 
-    // Validate coordinates (basic check)
-    if (typeof lat !== 'number' || typeof lng !== 'number') {
-      return NextResponse.json({ error: 'Invalid coordinates' }, { status: 400 });
-    }
+    // Check if this is a test NFT claim
+    const isTestNFT = achievementId === 'TEST_BADGE';
 
-    // Check if achievement exists
-    const achievement = getAchievementById(achievementId);
-    if (!achievement) {
-      return NextResponse.json({ error: 'Achievement not found' }, { status: 404 });
-    }
+    if (!isTestNFT) {
+      // Validate coordinates (basic check) - not required for test NFT
+      if (typeof lat !== 'number' || typeof lng !== 'number') {
+        return NextResponse.json({ error: 'Invalid coordinates' }, { status: 400 });
+      }
 
-    // Validate eligibility
-    console.log(`\n🔍 Validating claim for ${achievementId} by ${wallet}`);
-    await validateEligibility(achievementId, { lat, lng, eventCode });
-    console.log('✅ Validation passed!');
+      // Check if achievement exists
+      const achievement = getAchievementById(achievementId);
+      if (!achievement) {
+        return NextResponse.json({ error: 'Achievement not found' }, { status: 404 });
+      }
+
+      // Validate eligibility
+      console.log(`\n🔍 Validating claim for ${achievementId} by ${wallet}`);
+      await validateEligibility(achievementId, { lat, lng, eventCode });
+      console.log('✅ Validation passed!');
+    } else {
+      // Test NFT - skip all validation
+      console.log(`\n🧪 Test NFT claim for ${wallet} (no validation required)`);
+    }
 
     // Generate unique nonce
     // TODO: In production, generate and store in database to prevent reuse
@@ -209,13 +217,13 @@ export async function POST(request) {
     const network = process.env.NEXT_PUBLIC_NETWORK || 'localhost';
     const chainId = network === 'localhost' ? 31337 : network === 'sepolia' ? 11155111 : 1;
 
-    // Convert achievementId to bytes32 (same as frontend does)
-    const achievementIdBytes32 = ethers.id(achievementId);
+    // For test NFT, use special marker; for regular achievements, use achievementId
+    const messageIdentifier = isTestNFT ? ethers.id('TEST_NFT') : ethers.id(achievementId);
 
     // Create message hash (MUST match contract's hash exactly)
     const messageHash = ethers.solidityPackedKeccak256(
       ['address', 'bytes32', 'bytes32', 'uint256', 'uint256', 'address'],
-      [wallet, achievementIdBytes32, nonce, deadline, chainId, contractAddress]
+      [wallet, messageIdentifier, nonce, deadline, chainId, contractAddress]
     );
 
     // Sign the message
@@ -234,6 +242,7 @@ export async function POST(request) {
     console.log('   Signer:', signer.address);
     console.log('   Nonce:', nonceHex);
     console.log('   Deadline:', new Date(deadline * 1000).toISOString());
+    console.log('   Is Test NFT:', isTestNFT);
 
     // Return signature and parameters
     return NextResponse.json({
@@ -242,7 +251,10 @@ export async function POST(request) {
       nonce: nonceHex,
       deadline,
       achievementId,
-      message: 'Eligibility verified. Use this signature to mint your achievement NFT.',
+      isTestNFT,
+      message: isTestNFT 
+        ? 'Test NFT approved. Use this signature to mint.'
+        : 'Eligibility verified. Use this signature to mint your achievement NFT.',
     });
   } catch (error) {
     console.error('❌ Claim validation failed:', error);

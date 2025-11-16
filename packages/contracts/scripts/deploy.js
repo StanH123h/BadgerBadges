@@ -22,7 +22,9 @@ async function main() {
 
   console.log('Backend signer address:', backendSignerAddress);
 
-  const baseURI = 'https://api.badgerbadge.uw.edu/metadata/';
+  // Use environment variable or default to localhost
+  const baseURI = process.env.BASE_URI || 'http://localhost:3000/api/metadata/';
+  console.log('Base URI:', baseURI);
 
   // Deploy contract
   const Achievements = await ethers.getContractFactory('Achievements');

@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title BadgerBadge Achievements
- * @notice NFT contract for UW-Madison campus achievements
+ * @notice NFT contract for UW-Madison campus achievements (ERC1155)
+ *
+ * TOKEN ID STRUCTURE:
+ * - Regular achievements: uint256(keccak256(achievementId))
+ * - Test NFTs: 10000 - 19999 (10,000 unique test badges)
  *
  * SECURITY NOTES (MUST FIX BEFORE PRODUCTION):
  * 1. Gas fees: Students need ETH to mint. Consider implementing EIP-2771 meta-transactions
@@ -16,27 +22,30 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * 2. Nonce management: Current implementation uses simple mapping. For production,
  *    consider using incremental nonces per user for better UX.
  * 3. Signature replay: Protected by nonce + deadline + chainId + contract address.
- * 4. Metadata: tokenURI needs to be implemented (IPFS or centralized server).
+ * 4. Metadata: uri() returns API endpoint for dynamic metadata generation.
  */
-contract Achievements is ERC721, Ownable {
+contract Achievements is ERC1155, ERC1155Supply, Ownable {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
+    using Strings for uint256;
 
     // ========== STATE VARIABLES ==========
 
     /// @notice Address authorized to sign mint approvals (backend server)
     address public signer;
 
-    /// @notice Counter for token IDs
-    uint256 private _tokenIdCounter;
-
     /// @notice Base URI for token metadata
     string private _baseTokenURI;
+
+    /// @notice Test NFT constants
+    uint256 private constant TEST_NFT_START_ID = 10000;
+    uint256 private constant TEST_NFT_MAX_SUPPLY = 10000;
+    uint256 private _testNFTCounter;
 
     // Mapping: user address => achievementId => has claimed
     mapping(address => mapping(bytes32 => bool)) public hasClaimed;
 
-    // Mapping: tokenId => achievementId
+    // Mapping: tokenId => achievementId (for regular achievements)
     mapping(uint256 => bytes32) public tokenAchievements;
 
     // Mapping: nonce => used (prevents replay attacks)
@@ -51,6 +60,11 @@ contract Achievements is ERC721, Ownable {
         bytes32 indexed achievementId
     );
 
+    event TestNFTMinted(
+        address indexed user,
+        uint256 indexed tokenId
+    );
+
     event SignerUpdated(address indexed oldSigner, address indexed newSigner);
     event BaseURIUpdated(string newBaseURI);
 
@@ -59,7 +73,7 @@ contract Achievements is ERC721, Ownable {
     constructor(
         address _signer,
         string memory baseURI_
-    ) ERC721("BadgerBadge Achievement", "BADGE") Ownable(msg.sender) {
+    ) ERC1155("") Ownable(msg.sender) {
         require(_signer != address(0), "Invalid signer");
         signer = _signer;
         _baseTokenURI = baseURI_;
@@ -125,13 +139,70 @@ contract Achievements is ERC721, Ownable {
         // Mark as claimed
         hasClaimed[to][achievementId] = true;
 
-        // Mint token
-        uint256 tokenId = _tokenIdCounter++;
+        // Convert achievementId to tokenId
+        uint256 tokenId = uint256(achievementId);
         tokenAchievements[tokenId] = achievementId;
 
-        _safeMint(to, tokenId);
+        // Mint token (amount = 1 for achievements)
+        _mint(to, tokenId, 1, "");
 
         emit AchievementMinted(to, tokenId, achievementId);
+    }
+
+    /**
+     * @notice Mint a test NFT (repeatable, up to 10,000 unique IDs)
+     * @param to Address to mint to
+     * @param nonce Unique nonce (must be generated server-side and tracked)
+     * @param deadline Expiration timestamp
+     * @param signature Backend signature authorizing this mint
+     *
+     * @dev Test NFTs use token IDs 10000-19999 and can be minted multiple times
+     * by the same user. Each mint gets a unique token ID.
+     */
+    function mintTestNFT(
+        address to,
+        bytes32 nonce,
+        uint256 deadline,
+        bytes memory signature
+    ) external {
+        // Check deadline
+        require(block.timestamp <= deadline, "Signature expired");
+
+        // Check nonce not used (prevents replay)
+        require(!usedNonces[nonce], "Nonce already used");
+
+        // Check supply limit
+        require(_testNFTCounter < TEST_NFT_MAX_SUPPLY, "Test NFT supply exhausted");
+
+        // Verify signature (for test NFT, use special marker)
+        bytes32 testNFTMarker = keccak256("TEST_NFT");
+        bytes32 messageHash = keccak256(
+            abi.encodePacked(
+                to,
+                testNFTMarker,
+                nonce,
+                deadline,
+                block.chainid,
+                address(this)
+            )
+        );
+
+        bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
+        address recoveredSigner = ethSignedMessageHash.recover(signature);
+
+        require(recoveredSigner == signer, "Invalid signature");
+
+        // Mark nonce as used
+        usedNonces[nonce] = true;
+
+        // Assign next test NFT ID
+        uint256 tokenId = TEST_NFT_START_ID + _testNFTCounter;
+        _testNFTCounter++;
+
+        // Mint token (amount = 1)
+        _mint(to, tokenId, 1, "");
+
+        emit TestNFTMinted(to, tokenId);
     }
 
     // ========== VIEW FUNCTIONS ==========
@@ -155,39 +226,52 @@ contract Achievements is ERC721, Ownable {
         view
         returns (bytes32)
     {
+        // Only regular achievements have achievementId mapping
+        require(tokenId < TEST_NFT_START_ID, "Not a regular achievement");
         require(tokenAchievements[tokenId] != bytes32(0), "Token does not exist");
         return tokenAchievements[tokenId];
     }
 
     /**
-     * @notice Get total number of achievements minted
+     * @notice Check if a token ID is a test NFT
      */
-    function totalMinted() external view returns (uint256) {
-        return _tokenIdCounter;
+    function isTestNFT(uint256 tokenId) public pure returns (bool) {
+        return tokenId >= TEST_NFT_START_ID && tokenId < TEST_NFT_START_ID + TEST_NFT_MAX_SUPPLY;
     }
 
     /**
-     * @dev Base URI for computing {tokenURI}
-     * TODO: Implement proper metadata hosting (IPFS or centralized API)
+     * @notice Get the total number of test NFTs minted
      */
-    function _baseURI() internal view override returns (string memory) {
-        return _baseTokenURI;
+    function testNFTsMinted() external view returns (uint256) {
+        return _testNFTCounter;
     }
 
     /**
-     * @notice Get token URI
-     * TODO: This should return metadata JSON with achievement name, description, image
-     * Format: { "name": "...", "description": "...", "image": "ipfs://..." }
+     * @notice Get the number of test NFTs owned by an address
      */
-    function tokenURI(uint256 tokenId)
+    function testNFTsOwnedBy(address owner) external view returns (uint256) {
+        uint256 count = 0;
+        for (uint256 i = 0; i < _testNFTCounter; i++) {
+            uint256 tokenId = TEST_NFT_START_ID + i;
+            if (balanceOf(owner, tokenId) > 0) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * @notice Get token URI for ERC1155
+     * Returns: baseURI + tokenId
+     * Backend should serve metadata at this URL
+     */
+    function uri(uint256 tokenId)
         public
         view
         override
         returns (string memory)
     {
-        // For now, returns base URI + tokenId
-        // PRODUCTION: Should return baseURI + achievementId for consistent metadata
-        return super.tokenURI(tokenId);
+        return string(abi.encodePacked(_baseTokenURI, tokenId.toString()));
     }
 
     // ========== ADMIN FUNCTIONS ==========
@@ -209,5 +293,19 @@ contract Achievements is ERC721, Ownable {
     function setBaseURI(string memory newBaseURI) external onlyOwner {
         _baseTokenURI = newBaseURI;
         emit BaseURIUpdated(newBaseURI);
+    }
+
+    // ========== OVERRIDES ==========
+
+    /**
+     * @dev Override required by Solidity for multiple inheritance
+     */
+    function _update(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory values
+    ) internal override(ERC1155, ERC1155Supply) {
+        super._update(from, to, ids, values);
     }
 }

@@ -4,13 +4,13 @@ import { getAchievementById } from '@badger/shared';
 
 /**
  * NFT Metadata API
- * 返回符合 OpenSea 标准的 NFT 元数据
+ * Returns OpenSea-compatible NFT metadata
  *
  * URL: /api/metadata/[tokenId]
- * 例如: /api/metadata/0
+ * Example: /api/metadata/0
  */
 
-// 成就 ID 到图标的映射（使用 SVG data URL）
+// Achievement ID to icon mapping (using SVG data URLs)
 const ACHIEVEMENT_IMAGES = {
   'RAINY_DAY_2025': generateEmojiSVG('🌧️', 'Madison Rainy Day'),
   'SNOW_DAY_2025': generateEmojiSVG('❄️', 'First Snow'),
@@ -19,41 +19,57 @@ const ACHIEVEMENT_IMAGES = {
 };
 
 /**
- * 生成 emoji SVG 图片（作为 data URL）
+ * Generate emoji SVG image (as data URL)
  */
-function generateEmojiSVG(emoji, title, tokenId = '') {
+function generateEmojiSVG(emoji, title, tokenId = '', isTestNFT = false) {
+  // Generate dynamic background color for test NFTs
+  let gradientColors = {
+    start: '#c5050c',
+    end: '#9b0000'
+  };
+
+  if (isTestNFT && tokenId !== '') {
+    // Generate HSL color based on token ID
+    const normalizedId = parseInt(tokenId) - 10000; // 0-9999
+    const hue = Math.floor((normalizedId / 10000) * 360); // 0-360
+    gradientColors = {
+      start: `hsl(${hue}, 70%, 65%)`,
+      end: `hsl(${hue}, 70%, 45%)`
+    };
+  }
+
   const svg = `
     <svg width="500" height="500" xmlns="http://www.w3.org/2000/svg">
-      <!-- 背景渐变 -->
+      <!-- Background gradient -->
       <defs>
         <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#c5050c;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#9b0000;stop-opacity:1" />
+          <stop offset="0%" style="stop-color:${gradientColors.start};stop-opacity:1" />
+          <stop offset="100%" style="stop-color:${gradientColors.end};stop-opacity:1" />
         </linearGradient>
 
-        <!-- Token ID 背景渐变 -->
+        <!-- Token ID background gradient -->
         <linearGradient id="tokenBg" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" style="stop-color:rgba(255,255,255,0.2);stop-opacity:1" />
           <stop offset="100%" style="stop-color:rgba(255,255,255,0.3);stop-opacity:1" />
         </linearGradient>
       </defs>
 
-      <!-- 背景 -->
+      <!-- Background -->
       <rect width="500" height="500" fill="url(#grad1)" rx="20"/>
 
-      <!-- 边框 -->
+      <!-- Border -->
       <rect x="10" y="10" width="480" height="480" fill="none" stroke="white" stroke-width="4" rx="15"/>
 
-      <!-- Token ID 徽章（左下角） -->
+      <!-- Token ID badge (bottom left) -->
       ${tokenId !== '' ? `
       <g opacity="0.95">
-        <!-- 圆角矩形背景 -->
+        <!-- Rounded rectangle background -->
         <rect x="30" y="430" width="120" height="50" fill="url(#tokenBg)" rx="25"/>
 
-        <!-- 边框 -->
+        <!-- Border -->
         <rect x="30" y="430" width="120" height="50" fill="none" stroke="white" stroke-width="2" rx="25"/>
 
-        <!-- Token ID 文字 -->
+        <!-- Token ID text -->
         <text x="90" y="463" font-size="28" font-weight="bold" text-anchor="middle" fill="white" font-family="Arial, sans-serif">
           #${tokenId}
         </text>
@@ -63,7 +79,7 @@ function generateEmojiSVG(emoji, title, tokenId = '') {
       <!-- Emoji -->
       <text x="250" y="280" font-size="200" text-anchor="middle" fill="white">${emoji}</text>
 
-      <!-- 标题 -->
+      <!-- Title -->
       <text x="250" y="450" font-size="24" font-weight="bold" text-anchor="middle" fill="white" font-family="Arial, sans-serif">
         ${title}
       </text>
@@ -74,7 +90,7 @@ function generateEmojiSVG(emoji, title, tokenId = '') {
 }
 
 /**
- * 从合约读取 tokenId 对应的 achievementId
+ * Read achievementId from contract for a given tokenId
  */
 async function getAchievementIdFromContract(tokenId) {
   try {
@@ -85,18 +101,18 @@ async function getAchievementIdFromContract(tokenId) {
       throw new Error('Contract address not configured');
     }
 
-    // 导入 ABI
+    // Import ABI
     const { AchievementsABI } = await import('@badger/shared');
 
-    // 连接到合约
+    // Connect to contract
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     const contract = new ethers.Contract(contractAddress, AchievementsABI, provider);
 
-    // 调用 getAchievementId
+    // Call getAchievementId
     const achievementIdBytes32 = await contract.getAchievementId(tokenId);
 
-    // 将 bytes32 转换回字符串
-    // 我们需要查找匹配的 achievementId
+    // Convert bytes32 back to string
+    // We need to find the matching achievementId
     const ACHIEVEMENTS = await import('@badger/shared').then(m => m.ACHIEVEMENTS);
 
     for (const achievement of ACHIEVEMENTS) {
@@ -119,11 +135,51 @@ async function getAchievementIdFromContract(tokenId) {
 export async function GET(request, { params }) {
   try {
     const { tokenId } = params;
+    const tokenIdNum = parseInt(tokenId);
 
-    // 从合约读取 achievementId
+    // Check if this is a test NFT (token ID 10000-19999)
+    const isTestNFT = tokenIdNum >= 10000 && tokenIdNum < 20000;
+
+    if (isTestNFT) {
+      // Test NFT metadata
+      const metadata = {
+        name: `Test Badge #${tokenIdNum}`,
+        description: 'Repeatable test badge for development and testing purposes',
+        image: generateEmojiSVG('🧪', 'Test Badge', tokenId, true),
+        external_url: `http://localhost:3000`,
+        attributes: [
+          {
+            trait_type: 'Category',
+            value: 'test',
+          },
+          {
+            trait_type: 'Token ID',
+            value: tokenId.toString(),
+          },
+          {
+            trait_type: 'Type',
+            value: 'Test NFT',
+          },
+          {
+            trait_type: 'Color Hue',
+            value: Math.floor(((tokenIdNum - 10000) / 10000) * 360).toString(),
+          },
+        ],
+      };
+
+      return NextResponse.json(metadata, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        },
+      });
+    }
+
+    // Regular achievement NFT
+    // Read achievementId from contract
     const achievementIdString = await getAchievementIdFromContract(tokenId);
 
-    // 获取成就信息
+    // Get achievement info
     const achievement = getAchievementById(achievementIdString);
 
     if (!achievement) {
@@ -133,11 +189,11 @@ export async function GET(request, { params }) {
       );
     }
 
-    // 构建符合 OpenSea 标准的元数据
+    // Build OpenSea-compatible metadata
     const metadata = {
       name: `${achievement.name} #${tokenId}`,
       description: achievement.description,
-      image: generateEmojiSVG(achievement.icon, achievement.name, tokenId),
+      image: generateEmojiSVG(achievement.icon, achievement.name, tokenId, false),
       external_url: `http://localhost:3000`,
       attributes: [
         {
@@ -159,7 +215,7 @@ export async function GET(request, { params }) {
       ],
     };
 
-    // 返回 JSON
+    // Return JSON
     return NextResponse.json(metadata, {
       headers: {
         'Content-Type': 'application/json',

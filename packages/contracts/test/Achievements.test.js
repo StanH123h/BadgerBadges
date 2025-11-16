@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { ethers } from 'hardhat';
+import hre from 'hardhat';
+const { ethers } = hre;
 import { time } from '@nomicfoundation/hardhat-toolbox/network-helpers.js';
 
 describe('Achievements Contract', function () {
@@ -46,6 +47,8 @@ describe('Achievements Contract', function () {
       // Sign with backend signer
       const signature = await backendSigner.signMessage(ethers.getBytes(messageHash));
 
+      const tokenId = BigInt(ACHIEVEMENT_ID);
+
       // Mint
       await expect(
         achievements.connect(user1).mintAchievement(
@@ -57,12 +60,12 @@ describe('Achievements Contract', function () {
         )
       )
         .to.emit(achievements, 'AchievementMinted')
-        .withArgs(user1.address, 0, ACHIEVEMENT_ID);
+        .withArgs(user1.address, tokenId, ACHIEVEMENT_ID);
 
-      // Verify ownership
-      expect(await achievements.ownerOf(0)).to.equal(user1.address);
+      // Verify ownership (ERC1155 uses balanceOf)
+      expect(await achievements.balanceOf(user1.address, tokenId)).to.equal(1);
       expect(await achievements.hasAchievement(user1.address, ACHIEVEMENT_ID)).to.be.true;
-      expect(await achievements.getAchievementId(0)).to.equal(ACHIEVEMENT_ID);
+      expect(await achievements.getAchievementId(tokenId)).to.equal(ACHIEVEMENT_ID);
     });
 
     it('Should reject expired signature', async function () {
@@ -183,6 +186,91 @@ describe('Achievements Contract', function () {
           signature
         )
       ).to.be.revertedWith('Nonce already used');
+    });
+  });
+
+  describe('Test NFT Minting', function () {
+    it('Should mint test NFT with valid signature', async function () {
+      const nonce = ethers.randomBytes(32);
+      const deadline = (await time.latest()) + 3600;
+      const chainId = (await ethers.provider.getNetwork()).chainId;
+      const testNFTMarker = ethers.id('TEST_NFT');
+
+      // Create message hash for test NFT
+      const messageHash = ethers.solidityPackedKeccak256(
+        ['address', 'bytes32', 'bytes32', 'uint256', 'uint256', 'address'],
+        [user1.address, testNFTMarker, nonce, deadline, chainId, await achievements.getAddress()]
+      );
+
+      const signature = await backendSigner.signMessage(ethers.getBytes(messageHash));
+
+      // Mint test NFT
+      await expect(
+        achievements.connect(user1).mintTestNFT(
+          user1.address,
+          nonce,
+          deadline,
+          signature
+        )
+      )
+        .to.emit(achievements, 'TestNFTMinted')
+        .withArgs(user1.address, 10000);
+
+      // Verify ownership
+      expect(await achievements.balanceOf(user1.address, 10000)).to.equal(1);
+      expect(await achievements.isTestNFT(10000)).to.be.true;
+      expect(await achievements.testNFTsMinted()).to.equal(1);
+    });
+
+    it('Should allow same user to mint multiple test NFTs', async function () {
+      const chainId = (await ethers.provider.getNetwork()).chainId;
+      const testNFTMarker = ethers.id('TEST_NFT');
+
+      // Mint first test NFT
+      const nonce1 = ethers.randomBytes(32);
+      const deadline1 = (await time.latest()) + 3600;
+      const messageHash1 = ethers.solidityPackedKeccak256(
+        ['address', 'bytes32', 'bytes32', 'uint256', 'uint256', 'address'],
+        [user1.address, testNFTMarker, nonce1, deadline1, chainId, await achievements.getAddress()]
+      );
+      const signature1 = await backendSigner.signMessage(ethers.getBytes(messageHash1));
+
+      await achievements.connect(user1).mintTestNFT(
+        user1.address,
+        nonce1,
+        deadline1,
+        signature1
+      );
+
+      // Mint second test NFT
+      const nonce2 = ethers.randomBytes(32);
+      const deadline2 = (await time.latest()) + 3600;
+      const messageHash2 = ethers.solidityPackedKeccak256(
+        ['address', 'bytes32', 'bytes32', 'uint256', 'uint256', 'address'],
+        [user1.address, testNFTMarker, nonce2, deadline2, chainId, await achievements.getAddress()]
+      );
+      const signature2 = await backendSigner.signMessage(ethers.getBytes(messageHash2));
+
+      await achievements.connect(user1).mintTestNFT(
+        user1.address,
+        nonce2,
+        deadline2,
+        signature2
+      );
+
+      // Verify both NFTs are owned
+      expect(await achievements.balanceOf(user1.address, 10000)).to.equal(1);
+      expect(await achievements.balanceOf(user1.address, 10001)).to.equal(1);
+      expect(await achievements.testNFTsMinted()).to.equal(2);
+      expect(await achievements.testNFTsOwnedBy(user1.address)).to.equal(2);
+    });
+
+    it('Should check isTestNFT correctly', async function () {
+      expect(await achievements.isTestNFT(9999)).to.be.false;
+      expect(await achievements.isTestNFT(10000)).to.be.true;
+      expect(await achievements.isTestNFT(15000)).to.be.true;
+      expect(await achievements.isTestNFT(19999)).to.be.true;
+      expect(await achievements.isTestNFT(20000)).to.be.false;
     });
   });
 
