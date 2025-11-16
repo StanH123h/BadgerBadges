@@ -141,7 +141,7 @@ export default function CustomToast({ show, onClose, type = 'success', title, me
                   cursor: 'pointer',
                 }}
               >
-                关闭
+                Close
               </motion.button>
             </motion.div>
           </div>

@@ -20,6 +20,7 @@ import Tilt from 'react-parallax-tilt';
 import NFTBadge from '../components/NFTBadge';
 import CustomToast from '../components/CustomToast';
 import EmojiConfetti from '../components/EmojiConfetti';
+import FileUploadModal from '../components/FileUploadModal';
 
 // Solana Configuration
 const PROGRAM_ID = new PublicKey('GcqYVPhMUUdqpBxVNcLK8otKGzWbxqWiMft2mcDvr7dZ');
@@ -30,17 +31,35 @@ export default function SolanaAchievementsPage() {
   const [wallet, setWallet] = useState(null);
   const [claiming, setClaiming] = useState({});
   const [claimedStatus, setClaimedStatus] = useState({}); // Track which achievements are claimed
+  const [pendingStatus, setPendingStatus] = useState({}); // Track which achievements are pending review
   const [mintedNFTs, setMintedNFTs] = useState([]); // Store minted NFTs for display
   const [particles, setParticles] = useState([]); // Particle animation data
   const [toast, setToast] = useState({ show: false, type: 'success', title: '', message: '', details: '', confettiEmoji: '' });
   const [confetti, setConfetti] = useState({ show: false, emoji: '' });
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const [uploadModal, setUploadModal] = useState({ show: false, achievementId: null, achievementName: '' });
   const connection = useMemo(() => new Connection(RPC_URL, 'confirmed'), []);
   const headerRef = useRef(null);
+
+  // Filter achievements by category
+  const filteredAchievements = useMemo(() => {
+    if (selectedCategory === 'all') {
+      return ACHIEVEMENTS;
+    }
+    return ACHIEVEMENTS.filter(achievement => achievement.category === selectedCategory);
+  }, [selectedCategory]);
 
   // Check user claimed achievements
   const checkClaimedAchievements = async (userPublicKey) => {
     const status = {};
     for (const achievement of ACHIEVEMENTS) {
+      // Test badges are always repeatable, don't check claimed status
+      if (achievement.isTestNFT) {
+        status[achievement.id] = false;
+        continue;
+      }
+
       try {
         const pda = await getUserAchievementPDA(userPublicKey, achievement.id);
         const accountInfo = await connection.getAccountInfo(pda);
@@ -62,8 +81,8 @@ export default function SolanaAchievementsPage() {
         setToast({
           show: true,
           type: 'error',
-          title: '未安装 Phantom 钱包',
-          message: '请先安装 Phantom 钱包扩展',
+          title: 'Phantom Wallet Not Installed',
+          message: 'Please install the Phantom wallet extension first',
           details: 'https://phantom.app/'
         });
         return;
@@ -86,8 +105,8 @@ export default function SolanaAchievementsPage() {
       setToast({
         show: true,
         type: 'error',
-        title: '连接钱包失败',
-        message: '无法连接到 Phantom 钱包',
+        title: 'Failed to Connect Wallet',
+        message: 'Unable to connect to Phantom wallet',
         details: error.message
       });
     }
@@ -99,6 +118,8 @@ export default function SolanaAchievementsPage() {
       window.solana.disconnect();
     }
     setWallet(null);
+    setClaimedStatus({}); // Clear claimed status
+    setPendingStatus({}); // Clear pending status
   };
 
   // Calculate Achievement State PDA
@@ -150,9 +171,32 @@ export default function SolanaAchievementsPage() {
       setToast({
         show: true,
         type: 'error',
-        title: '请先连接钱包',
-        message: '铸造 NFT 前需要先连接 Phantom 钱包',
+        title: 'Please Connect Wallet First',
+        message: 'You need to connect Phantom wallet before minting NFT',
         details: ''
+      });
+      return;
+    }
+
+    // Get achievement info
+    const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
+    if (!achievement) {
+      setToast({
+        show: true,
+        type: 'error',
+        title: 'Achievement Not Found',
+        message: 'The requested achievement could not be found',
+        details: ''
+      });
+      return;
+    }
+
+    // For academic achievements, show file upload modal
+    if (achievement.category === 'academic') {
+      setUploadModal({
+        show: true,
+        achievementId: achievementId,
+        achievementName: achievement.name,
       });
       return;
     }
@@ -162,12 +206,6 @@ export default function SolanaAchievementsPage() {
     try {
       console.log('🎯 Start minting NFT:', achievementId);
       console.log('💼 Wallet address:', wallet.address);
-
-      // Get achievement info
-      const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
-      if (!achievement) {
-        throw new Error('Achievement not found');
-      }
 
       // Read current total_minted, predict next number
       const achievementStatePDA = await getAchievementStatePDA();
@@ -273,8 +311,10 @@ export default function SolanaAchievementsPage() {
       console.log('🔗 Transaction signature:', signature);
       console.log('🪙 NFT Mint:', mintKeypair.publicKey.toString());
 
-      // Update claimed status
-      setClaimedStatus(prev => ({ ...prev, [achievementId]: true }));
+      // Update claimed status (skip for test NFTs as they are repeatable)
+      if (!achievement.isTestNFT) {
+        setClaimedStatus(prev => ({ ...prev, [achievementId]: true }));
+      }
 
       // Add to minted NFTs for display
       setMintedNFTs(prev => [...prev, {
@@ -290,9 +330,9 @@ export default function SolanaAchievementsPage() {
       setToast({
         show: true,
         type: 'success',
-        title: `🎉 成就 "${achievement.name}" 铸造成功！`,
-        message: `你已成功铸造 ${achievement.icon} NFT，快去 Phantom 钱包的"收藏品"标签查看吧！`,
-        details: `交易签名: ${signature.slice(0, 20)}...${signature.slice(-20)}`,
+        title: `🎉 Achievement "${achievement.name}" Minted Successfully!`,
+        message: `You have successfully minted ${achievement.icon} NFT! Check it out in Phantom wallet's "Collectibles" tab!`,
+        details: `Transaction Signature: ${signature.slice(0, 20)}...${signature.slice(-20)}`,
         confettiEmoji: achievement.icon // Store emoji for confetti
       });
 
@@ -300,21 +340,21 @@ export default function SolanaAchievementsPage() {
       console.error('❌ Mint failed:', error);
 
       let errorMessage = error.message;
-      let errorTitle = '铸造失败';
+      let errorTitle = 'Minting Failed';
 
       // Parse error
       if (error.message.includes('0x0')) {
-        errorTitle = '成就已被领取';
-        errorMessage = '你已经领取过这个成就了，无法重复铸造';
+        errorTitle = 'Achievement Already Claimed';
+        errorMessage = 'You have already claimed this achievement and cannot mint it again';
       } else if (error.message.includes('insufficient')) {
-        errorTitle = 'SOL 余额不足';
-        errorMessage = '你的钱包余额不足以支付交易费用，请先获取一些测试 SOL';
+        errorTitle = 'Insufficient SOL Balance';
+        errorMessage = 'Your wallet balance is insufficient to pay for transaction fees. Please get some test SOL first';
       } else if (error.message.includes('User rejected')) {
-        errorTitle = '交易已取消';
-        errorMessage = '你取消了交易签名';
+        errorTitle = 'Transaction Cancelled';
+        errorMessage = 'You cancelled the transaction signature';
       } else if (error.message.includes('already in use')) {
-        errorTitle = '成就已被领取';
-        errorMessage = '你已经领取过这个成就了，无法重复铸造';
+        errorTitle = 'Achievement Already Claimed';
+        errorMessage = 'You have already claimed this achievement and cannot mint it again';
       } else if (error.logs) {
         console.log('Transaction logs:', error.logs);
         const errorLog = error.logs.find(log => log.includes('Error'));
@@ -326,12 +366,45 @@ export default function SolanaAchievementsPage() {
         type: 'error',
         title: errorTitle,
         message: errorMessage,
-        details: `详细错误信息请查看控制台`
+        details: `Check console for detailed error information`
       });
     } finally {
       setClaiming(prev => ({ ...prev, [achievementId]: false }));
     }
   };
+
+  // Handle file upload submission for academic achievements
+  const handleFileUpload = (data) => {
+    const achievementId = uploadModal.achievementId;
+
+    console.log('📄 File uploaded for achievement:', achievementId);
+    console.log('📎 File:', data.file.name);
+    console.log('📝 Description:', data.description);
+
+    // Mark achievement as pending review
+    setPendingStatus(prev => ({ ...prev, [achievementId]: true }));
+
+    // Close modal
+    setUploadModal({ show: false, achievementId: null, achievementName: '' });
+
+    // Show success toast
+    const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
+    setToast({
+      show: true,
+      type: 'success',
+      title: '📤 Submission Received!',
+      message: `Your proof for "${achievement?.name}" has been submitted for review. You'll be notified once it's approved by an administrator.`,
+      details: `File: ${data.file.name}`,
+    });
+  };
+
+  // Mark initial animation as complete after first load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHasAnimated(true);
+    }, 3000); // Wait for initial animations to complete (last badge: 0.8 + 15*0.1 + 0.5 = 2.8s, add buffer)
+    return () => clearTimeout(timer);
+  }, []);
 
   // Header animation and particle generation
   useEffect(() => {
@@ -358,11 +431,11 @@ export default function SolanaAchievementsPage() {
 
   return (
     <div style={{
-      minHeight: '100vh',
       background: 'linear-gradient(135deg, #c5050c 0%, #9b0000 50%, #7a0000 100%)',
       padding: '2rem',
       position: 'relative',
-      overflow: 'hidden',
+      height: "100vh",
+      overflowY: 'scroll',
     }}>
       {/* Animated background particles */}
       <div style={{
@@ -399,7 +472,7 @@ export default function SolanaAchievementsPage() {
         ))}
       </div>
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+      <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative', zIndex: 9999 }}>
         {/* Header */}
         <motion.header
           ref={headerRef}
@@ -594,16 +667,74 @@ export default function SolanaAchievementsPage() {
           )}
         </motion.div>
 
+        {/* Category Filter */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
+          style={{
+            background: 'white',
+            borderRadius: '1rem',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+            padding: '1.5rem',
+            marginBottom: '2rem',
+          }}
+        >
+          <h3 style={{
+            fontSize: '1rem',
+            fontWeight: 'bold',
+            color: '#374151',
+            marginBottom: '1rem',
+          }}>
+            Filter by Category
+          </h3>
+          <div style={{
+            display: 'flex',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+          }}>
+            {['all', 'environment', 'event', 'time_location', 'academic', 'test'].map((category) => (
+              <motion.button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '0.875rem',
+                  background: selectedCategory === category
+                    ? 'linear-gradient(135deg, #c5050c 0%, #9b0000 100%)'
+                    : '#f3f4f6',
+                  color: selectedCategory === category ? 'white' : '#6b7280',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {category === 'all' ? 'All' :
+                 category === 'environment' ? 'Environment' :
+                 category === 'event' ? 'Event' :
+                 category === 'time_location' ? 'Time & Location' :
+                 category === 'academic' ? 'Academic' :
+                 'Test'}
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+
         {/* Achievements Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gridTemplateColumns: 'repeat(4, 1fr)',
           gap: '1.5rem',
           marginBottom: '3rem',
         }}>
-          {ACHIEVEMENTS.map((achievement, index) => {
+          {filteredAchievements.map((achievement, index) => {
             const isClaiming = claiming[achievement.id] || false;
             const isClaimed = claimedStatus[achievement.id] || false;
+            const isPending = pendingStatus[achievement.id] || false;
 
             return (
               <Tilt
@@ -619,9 +750,9 @@ export default function SolanaAchievementsPage() {
                 style={{ borderRadius: '1rem', overflow: 'hidden' }}
               >
                 <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
+                  initial={!hasAnimated ? { opacity: 0, y: 50 } : false}
+                  animate={!hasAnimated ? { opacity: 1, y: 0 } : {}}
+                  transition={!hasAnimated ? { delay: 0.8 + index * 0.1, duration: 0.5 } : {}}
                   whileHover={{
                     boxShadow: '0 20px 40px rgba(197, 5, 12, 0.2)',
                     transition: { duration: 0.2 }
@@ -630,13 +761,14 @@ export default function SolanaAchievementsPage() {
                     background: 'white',
                     borderRadius: '1rem',
                     boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-                    padding: '1.5rem',
+                    padding: '1rem',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    border: isClaimed ? '2px solid #10b981' : '2px solid transparent',
+                    border: isClaimed ? '2px solid #10b981' : (isPending ? '2px solid #f59e0b' : '2px solid transparent'),
                     position: 'relative',
                     overflow: 'hidden',
+                    aspectRatio: 1
                   }}
                 >
                 {/* Claimed badge */}
@@ -658,6 +790,28 @@ export default function SolanaAchievementsPage() {
                     }}
                   >
                     ✅ Claimed
+                  </motion.div>
+                )}
+
+                {/* Pending badge */}
+                {isPending && !isClaimed && (
+                  <motion.div
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    style={{
+                      position: 'absolute',
+                      top: '1rem',
+                      right: '1rem',
+                      background: '#f59e0b',
+                      color: 'white',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                    }}
+                  >
+                    ⏳ Pending
                   </motion.div>
                 )}
 
@@ -707,9 +861,9 @@ export default function SolanaAchievementsPage() {
 
                 <motion.button
                   onClick={() => handleClaim(achievement.id)}
-                  disabled={isClaiming || !wallet || isClaimed}
-                  whileHover={!isClaiming && wallet && !isClaimed ? { scale: 1.05, boxShadow: '0 8px 16px rgba(220, 38, 38, 0.3)' } : {}}
-                  whileTap={!isClaiming && wallet && !isClaimed ? { scale: 0.95 } : {}}
+                  disabled={isClaiming || !wallet || isClaimed || isPending}
+                  whileHover={!isClaiming && wallet && !isClaimed && !isPending ? { scale: 1.05, boxShadow: '0 8px 16px rgba(220, 38, 38, 0.3)' } : {}}
+                  whileTap={!isClaiming && wallet && !isClaimed && !isPending ? { scale: 0.95 } : {}}
                   style={{
                     width: '100%',
                     padding: '1rem',
@@ -717,17 +871,19 @@ export default function SolanaAchievementsPage() {
                     fontWeight: 'bold',
                     color: 'white',
                     border: 'none',
-                    cursor: isClaiming || !wallet || isClaimed ? 'not-allowed' : 'pointer',
+                    cursor: isClaiming || !wallet || isClaimed || isPending ? 'not-allowed' : 'pointer',
                     background: isClaimed
                       ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                      : (isClaiming || !wallet
-                        ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
-                        : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'),
-                    boxShadow: isClaimed ? '0 4px 12px rgba(16, 185, 129, 0.3)' : '0 4px 12px rgba(0,0,0,0.1)',
+                      : (isPending
+                        ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                        : (isClaiming || !wallet
+                          ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+                          : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)')),
+                    boxShadow: isClaimed ? '0 4px 12px rgba(16, 185, 129, 0.3)' : (isPending ? '0 4px 12px rgba(245, 158, 11, 0.3)' : '0 4px 12px rgba(0,0,0,0.1)'),
                     transition: 'all 0.3s',
                   }}
                 >
-                  {isClaimed ? '✅ Claimed' : (isClaiming ? '⏳ Minting...' : (wallet ? '🎨 Mint NFT' : '🔒 Connect wallet first'))}
+                  {isClaimed ? '✅ Claimed' : (isPending ? '⏳ Pending Review' : (isClaiming ? '⏳ Minting...' : (wallet ? (achievement.category === 'academic' ? '📄 Submit Proof' : '🎨 Mint NFT') : '🔒 Connect wallet first')))}
                 </motion.button>
               </motion.div>
               </Tilt>
@@ -805,6 +961,14 @@ export default function SolanaAchievementsPage() {
         show={confetti.show}
         emoji={confetti.emoji}
         onComplete={() => setConfetti({ show: false, emoji: '' })}
+      />
+
+      {/* File Upload Modal for Academic Achievements */}
+      <FileUploadModal
+        show={uploadModal.show}
+        achievementName={uploadModal.achievementName}
+        onClose={() => setUploadModal({ show: false, achievementId: null, achievementName: '' })}
+        onSubmit={handleFileUpload}
       />
     </div>
   );

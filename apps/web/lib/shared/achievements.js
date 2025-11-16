@@ -75,6 +75,42 @@ export const ACHIEVEMENTS = [
     },
   },
   {
+    id: 'CAMPUS_CONCERT',
+    name: 'Campus Concert',
+    description: 'Attended a concert or live performance on campus',
+    category: 'event',
+    icon: '🎵',
+    validationRules: {
+      type: 'event_code',
+      location: {
+        // Campus area
+        minLat: 43.0,
+        maxLat: 43.15,
+        minLng: -89.50,
+        maxLng: -89.30,
+      },
+      requiresEventCode: true,
+    },
+  },
+  {
+    id: 'CAMPUS_CLEANUP',
+    name: 'Campus Cleanup',
+    description: 'Participated in a campus cleanup or environmental activity',
+    category: 'event',
+    icon: '🧹',
+    validationRules: {
+      type: 'event_code',
+      location: {
+        // Campus area
+        minLat: 43.0,
+        maxLat: 43.15,
+        minLng: -89.50,
+        maxLng: -89.30,
+      },
+      requiresEventCode: true,
+    },
+  },
+  {
     id: 'LATE_NIGHT_MORGRIDGE',
     name: 'Late Night Hacker',
     description: 'Coding in Morgridge Hall between 2 AM - 5 AM',
@@ -95,6 +131,160 @@ export const ACHIEVEMENTS = [
       },
       // SECURITY WARNING: User can spoof location from browser
       // Consider requiring QR code scan in building for better verification
+    },
+  },
+  {
+    id: 'EARLY_BIRD',
+    name: 'Early Bird',
+    description: '6-8am at College Library',
+    category: 'time_location',
+    icon: '🌅',
+    validationRules: {
+      type: 'time_location',
+      location: {
+        // College Library approximate location
+        lat: 43.0751,
+        lng: -89.3993,
+        radiusMeters: 100,
+      },
+      timeWindow: {
+        // Must be between 6 AM and 8 AM local time
+        hourStart: 6,
+        hourEnd: 8,
+        timezone: 'America/Chicago',
+      },
+    },
+  },
+  {
+    id: 'PERFECT_SUNNY_DAY',
+    name: 'Perfect Sunny Day',
+    description: 'Experienced a perfect sunny day on campus',
+    category: 'environment',
+    icon: '☀️',
+    validationRules: {
+      type: 'weather',
+      condition: 'clear',
+      location: {
+        minLat: 43.0,
+        maxLat: 43.15,
+        minLng: -89.50,
+        maxLng: -89.30,
+      },
+    },
+  },
+  {
+    id: 'FOGGY_MORNING',
+    name: 'Foggy Morning',
+    description: 'Witnessed a foggy morning at UW-Madison',
+    category: 'environment',
+    icon: '🌫️',
+    validationRules: {
+      type: 'weather',
+      condition: 'fog',
+      location: {
+        minLat: 43.0,
+        maxLat: 43.15,
+        minLng: -89.50,
+        maxLng: -89.30,
+      },
+    },
+  },
+  {
+    id: 'SUN_SHOWER',
+    name: 'Sun Shower',
+    description: 'Caught in rain while the sun was shining',
+    category: 'environment',
+    icon: '🌦️',
+    validationRules: {
+      type: 'weather',
+      condition: 'sun_shower',
+      location: {
+        minLat: 43.0,
+        maxLat: 43.15,
+        minLng: -89.50,
+        maxLng: -89.30,
+      },
+    },
+  },
+  {
+    id: 'BLIZZARD',
+    name: 'Blizzard',
+    description: 'Survived a blizzard on campus',
+    category: 'environment',
+    icon: '🌨️',
+    validationRules: {
+      type: 'weather',
+      condition: 'blizzard',
+      location: {
+        minLat: 43.0,
+        maxLat: 43.15,
+        minLng: -89.50,
+        maxLng: -89.30,
+      },
+    },
+  },
+  {
+    id: 'AURORA',
+    name: 'Aurora',
+    description: 'Witnessed the aurora borealis in Madison',
+    category: 'environment',
+    icon: '🌌',
+    validationRules: {
+      type: 'weather',
+      condition: 'aurora',
+      location: {
+        minLat: 43.0,
+        maxLat: 43.15,
+        minLng: -89.50,
+        maxLng: -89.30,
+      },
+    },
+  },
+  {
+    id: 'STRAIGHT_A_BADGER',
+    name: 'Straight-A Badger',
+    description: 'Achieved a perfect 4.0 GPA for the semester',
+    category: 'academic',
+    icon: '📚',
+    validationRules: {
+      type: 'academic_record',
+      // Would require integration with student information system
+      // Security: Verify with official university API
+    },
+  },
+  {
+    id: 'FIRST_INTERNSHIP_UNLOCKED',
+    name: 'First Internship',
+    description: 'Secured your first internship or co-op position',
+    category: 'academic',
+    icon: '💼',
+    validationRules: {
+      type: 'manual_verification',
+      // Requires verification from career services or internship coordinator
+    },
+  },
+  {
+    id: 'RESEARCH_ROOKIE',
+    name: 'Research Rookie',
+    description: 'Joined a research lab for the first time',
+    category: 'academic',
+    icon: '🔬',
+    validationRules: {
+      type: 'manual_verification',
+      // Requires verification from faculty advisor or research coordinator
+    },
+  },
+  {
+    id: 'TEST_BADGE',
+    name: 'Test Badge',
+    description: 'Repeatable test badge for development and testing purposes',
+    category: 'test',
+    icon: '🧪',
+    isTestNFT: true,
+    maxSupply: 10000,
+    validationRules: {
+      type: 'test',
+      // No validation required for test NFT
     },
   },
   // Future academic achievements (commented out for now)
