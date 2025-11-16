@@ -5,12 +5,12 @@
   "description": "UW-Madison campus achievements NFT system",
   "scripts": {
     "dev:web": "pnpm --filter web dev",
-    "dev:contracts": "pnpm --filter contracts hardhat node",
+    "dev:contracts": "pnpm --filter contracts node",
     "build:web": "pnpm --filter web build",
-    "build:contracts": "pnpm --filter contracts hardhat compile",
-    "deploy:local": "pnpm --filter contracts hardhat run scripts/deploy.js --network localhost",
-    "deploy:sepolia": "pnpm --filter contracts hardhat run scripts/deploy.js --network sepolia",
-    "test:contracts": "pnpm --filter contracts hardhat test"
+    "build:contracts": "pnpm --filter contracts compile",
+    "deploy:local": "pnpm --filter contracts deploy:local",
+    "deploy:sepolia": "pnpm --filter contracts deploy:sepolia",
+    "test:contracts": "pnpm --filter contracts test"
   },
   "keywords": ["web3", "nft", "achievements", "uw-madison"],
   "author": "",
