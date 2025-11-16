@@ -1,20 +1,8 @@
-# Node modules
-/node_modules
+# This file is minimal as most patterns are covered by root .gitignore
+# Only contracts-specific overrides should be added here
 
-# Compilation output
-/dist
-
-# pnpm deploy output
-/bundle
-
-# Hardhat Build Artifacts
-/artifacts
-
-# Hardhat compilation (v2) support directory
-/cache
-
-# Typechain output
+# Hardhat specific (using relative paths for this workspace)
 /types
 
-# Hardhat coverage reports
-/coverage
+# Hardhat deployment output
+/deployments

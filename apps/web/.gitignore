@@ -1,15 +1,5 @@
-# Next.js
-.next/
-out/
-build/
+# This file is minimal as most patterns are covered by root .gitignore
+# Only web-specific overrides should be added here
 
-# Environment
-.env.local
-.env
-
-# Dependencies
-node_modules/
-
-# Misc
-*.log
-.DS_Store
+# Vercel deployment output
+.vercel
