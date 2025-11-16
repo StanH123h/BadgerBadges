@@ -1,0 +1,33 @@
+{
+  "name": "{{ACHIEVEMENT_NAME}}",
+  "symbol": "BADGE",
+  "description": "UW-Madison BadgerBadge Achievement NFT - {{ACHIEVEMENT_DESCRIPTION}}",
+  "image": "{{IMAGE_URL}}",
+  "attributes": [
+    {
+      "trait_type": "Category",
+      "value": "{{CATEGORY}}"
+    },
+    {
+      "trait_type": "Achievement ID",
+      "value": "{{ACHIEVEMENT_ID}}"
+    },
+    {
+      "trait_type": "University",
+      "value": "UW-Madison"
+    },
+    {
+      "trait_type": "Mint Number",
+      "value": "{{MINT_NUMBER}}"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "{{IMAGE_URL}}",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}

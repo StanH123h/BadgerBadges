@@ -1,0 +1,22 @@
+[package]
+name = "achievements"
+version = "0.1.0"
+description = "UW-Madison BadgerBadge Achievements on Solana"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "achievements"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.30.0"
+anchor-spl = "0.30.0"
+mpl-token-metadata = "4.1.2"
+ed25519-dalek = "2.1"

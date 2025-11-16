@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
-import { getAchievementById } from '@badger/shared';
+import { getAchievementById } from '../../../lib/shared';
 
 /**
  * Backend API for validating and signing achievement claims
