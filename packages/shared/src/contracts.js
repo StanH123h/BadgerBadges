@@ -48,6 +48,5 @@ export function getAchievementsAddress() {
 }
 
 // ABI is imported from the generated artifacts
-// TODO: After compiling contracts, copy ABI here or import from artifacts
-// For now, export a placeholder
-export { default as AchievementsABI } from './abi/Achievements.json' assert { type: 'json' };
+import AchievementsABIData from './abi/Achievements.json' with { type: 'json' };
+export const AchievementsABI = AchievementsABIData;
