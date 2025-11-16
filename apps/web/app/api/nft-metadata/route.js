@@ -1,12 +1,12 @@
 /**
  * NFT Metadata JSON API
- * 访问: /api/nft-metadata?id=RAINY_DAY_2025&n=1
- * 返回符合 Metaplex 标准的 JSON
+ * Access: /api/nft-metadata?id=RAINY_DAY_2025&n=1
+ * Return Metaplex standard JSON
  */
 
 import { ACHIEVEMENTS } from '../../../lib/shared';
 
-// 基于编号生成确定的随机颜色
+// Generate deterministic random color based on number
 function generateRandomColor(seed) {
   const hash = (seed * 2654435761) % 2147483648;
   const hue = hash % 360;
@@ -15,7 +15,7 @@ function generateRandomColor(seed) {
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
-// 生成 SVG data URI
+// Generate SVG data URI
 function generateSVGDataURI(icon, mintNumber) {
   const color1 = generateRandomColor(mintNumber);
   const color2 = generateRandomColor(mintNumber * 7 + 13);
@@ -32,7 +32,7 @@ function generateSVGDataURI(icon, mintNumber) {
   <text x="20" y="380" font-size="32" font-weight="bold" fill="#fff" opacity="0.9">#${mintNumber}</text>
 </svg>`;
 
-  // 转换为 base64 data URI
+  // Convert to base64 data URI
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }
 
@@ -41,16 +41,16 @@ export async function GET(request) {
   const achievementId = searchParams.get('id');
   const mintNumber = parseInt(searchParams.get('n') || '1');
 
-  // 查找成就
+  // Find achievement
   const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
   if (!achievement) {
     return Response.json({ error: 'Achievement not found' }, { status: 404 });
   }
 
-  // 生成图片 data URI（直接嵌入，不需要额外请求）
+  // Generate image data URI (embedded directly, no additional request needed)
   const imageDataURI = generateSVGDataURI(achievement.icon, mintNumber);
 
-  // Metaplex 标准 metadata
+  // Metaplex standard metadata
   const metadata = {
     name: `${achievement.name} #${mintNumber}`,
     symbol: "BADGE",

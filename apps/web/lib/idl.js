@@ -1,5 +1,5 @@
 // Achievements Program IDL
-// 简化版IDL，用于前端调用
+// Simplified IDL for frontend use
 
 export const ACHIEVEMENTS_IDL = {
   version: "0.1.0",

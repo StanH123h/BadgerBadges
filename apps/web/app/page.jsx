@@ -1,6 +1,6 @@
 /**
- * BadgerBadge - Solana版本（真实NFT领取）
- * UW-Madison校园成就系统
+ * BadgerBadge - Solana Version (Real NFT Minting)
+ * UW-Madison Campus Achievement System
  */
 
 'use client';
@@ -15,7 +15,7 @@ import {
   getAssociatedTokenAddress,
 } from '@solana/spl-token';
 
-// Solana配置
+// Solana Configuration
 const PROGRAM_ID = new PublicKey('GcqYVPhMUUdqpBxVNcLK8otKGzWbxqWiMft2mcDvr7dZ');
 const METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 const RPC_URL = 'https://api.devnet.solana.com';
@@ -23,37 +23,37 @@ const RPC_URL = 'https://api.devnet.solana.com';
 export default function SolanaAchievementsPage() {
   const [wallet, setWallet] = useState(null);
   const [claiming, setClaiming] = useState({});
-  const [claimedStatus, setClaimedStatus] = useState({}); // 记录哪些成就已领取
+  const [claimedStatus, setClaimedStatus] = useState({}); // Track which achievements are claimed
   const connection = useMemo(() => new Connection(RPC_URL, 'confirmed'), []);
 
-  // 检查用户已领取的成就
+  // Check user claimed achievements
   const checkClaimedAchievements = async (userPublicKey) => {
     const status = {};
     for (const achievement of ACHIEVEMENTS) {
       try {
         const pda = await getUserAchievementPDA(userPublicKey, achievement.id);
         const accountInfo = await connection.getAccountInfo(pda);
-        status[achievement.id] = accountInfo !== null; // 账户存在 = 已领取
+        status[achievement.id] = accountInfo !== null; // Account exists = claimed
       } catch (error) {
         status[achievement.id] = false;
       }
     }
     setClaimedStatus(status);
-    console.log('📋 已领取状态:', status);
+    console.log('📋 Claimed status:', status);
   };
 
-  // 连接Phantom钱包
+  // Connect Phantom Wallet
   const connectWallet = async () => {
     try {
       const { solana } = window;
 
       if (!solana?.isPhantom) {
-        alert('请安装Phantom钱包！\n访问：https://phantom.app/');
+        alert('Please install Phantom Wallet!\nVisit:https://phantom.app/');
         return;
       }
 
       const response = await solana.connect();
-      console.log('✅ 已连接钱包:', response.publicKey.toString());
+      console.log('✅ Wallet connected:', response.publicKey.toString());
 
       const walletData = {
         publicKey: response.publicKey,
@@ -62,15 +62,15 @@ export default function SolanaAchievementsPage() {
 
       setWallet(walletData);
 
-      // 检查已领取的成就
+      // Check claimed achievements
       await checkClaimedAchievements(response.publicKey);
     } catch (error) {
-      console.error('连接钱包失败:', error);
-      alert('连接钱包失败：' + error.message);
+      console.error('Failed to connect wallet:', error);
+      alert('Failed to connect wallet：' + error.message);
     }
   };
 
-  // 断开钱包
+  // Disconnect wallet
   const disconnectWallet = () => {
     if (window.solana) {
       window.solana.disconnect();
@@ -78,7 +78,7 @@ export default function SolanaAchievementsPage() {
     setWallet(null);
   };
 
-  // 计算 Achievement State PDA
+  // Calculate Achievement State PDA
   const getAchievementStatePDA = async () => {
     const [pda] = await PublicKey.findProgramAddress(
       [Buffer.from('achievement_state')],
@@ -87,7 +87,7 @@ export default function SolanaAchievementsPage() {
     return pda;
   };
 
-  // 计算User Achievement PDA
+  // Calculate User Achievement PDA
   const getUserAchievementPDA = async (userPubkey, achievementId) => {
     const [pda] = await PublicKey.findProgramAddress(
       [
@@ -100,7 +100,7 @@ export default function SolanaAchievementsPage() {
     return pda;
   };
 
-  // 计算 Metadata PDA (Metaplex 标准)
+  // Calculate Metadata PDA (Metaplex Standard)
   const getMetadataPDA = async (mint) => {
     const [pda] = await PublicKey.findProgramAddress(
       [
@@ -113,7 +113,7 @@ export default function SolanaAchievementsPage() {
     return pda;
   };
 
-  // 序列化字符串（Anchor格式）
+  // Serialize string (Anchor format)
   const serializeString = (str) => {
     const stringBytes = Buffer.from(str, 'utf-8');
     const lengthBuffer = Buffer.alloc(4);
@@ -124,53 +124,53 @@ export default function SolanaAchievementsPage() {
   // Mint NFT Achievement
   const handleClaim = async (achievementId) => {
     if (!wallet) {
-      alert('请先连接Phantom钱包！');
+      alert('Please connect Phantom wallet first!');
       return;
     }
 
     setClaiming(prev => ({ ...prev, [achievementId]: true }));
 
     try {
-      console.log('🎯 开始mint NFT:', achievementId);
-      console.log('💼 钱包地址:', wallet.address);
+      console.log('🎯 Start minting NFT:', achievementId);
+      console.log('💼 Wallet address:', wallet.address);
 
-      // 获取成就信息
+      // Get achievement info
       const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
       if (!achievement) {
         throw new Error('Achievement not found');
       }
 
-      // 读取当前的 total_minted，预测下一个编号
+      // Read current total_minted, predict next number
       const achievementStatePDA = await getAchievementStatePDA();
-      let mintNumber = 1; // 默认值
+      let mintNumber = 1; // Default value
       try {
         const accountInfo = await connection.getAccountInfo(achievementStatePDA);
         if (accountInfo) {
-          // AchievementState 结构: discriminator(8) + authority(32) + total_minted(8)
+          // AchievementState structure: discriminator(8) + authority(32) + total_minted(8)
           const totalMinted = Number(accountInfo.data.readBigUInt64LE(40));
           mintNumber = totalMinted + 1;
-          console.log('📊 当前已铸造:', totalMinted, '→ 下一个编号:', mintNumber);
+          console.log('📊 Currently minted:', totalMinted, '→ Next number:', mintNumber);
         }
       } catch (error) {
-        console.warn('⚠️ 无法读取 total_minted，使用默认编号 #1');
+        console.warn('⚠️ Cannot read total_minted, using default number #1');
       }
 
-      // 1. 上传图片和 metadata JSON 到 Supabase
-      console.log('📤 正在上传资源到 Supabase...');
+      // 1. Upload image and metadata JSON to Supabase
+      console.log('📤 Uploading assets to Supabase...');
       const { imageUrl, metadataUrl } = await uploadNFTAssets(achievementId, achievement, mintNumber);
-      console.log('✅ 图片 URL:', imageUrl);
+      console.log('✅ Image URL:', imageUrl);
       console.log('✅ Metadata URL:', metadataUrl);
       console.log('🖼️ Metadata URI length:', metadataUrl.length);
-      console.log('🎨 NFT 编号:', mintNumber);
+      console.log('🎨 NFT Number:', mintNumber);
 
-      // 使用 Supabase 的 metadata URL
+      // Use Supabase metadata URL
       const metadataUri = metadataUrl;
 
-      // 生成新的 mint keypair
+      // Generate new mint keypair
       const mintKeypair = Keypair.generate();
       console.log('🪙 Mint address:', mintKeypair.publicKey.toString());
 
-      // 计算其他 PDAs
+      // Calculate other PDAs
       const userAchievementPDA = await getUserAchievementPDA(wallet.publicKey, achievementId);
       const metadataPDA = await getMetadataPDA(mintKeypair.publicKey);
       const tokenAccount = await getAssociatedTokenAddress(
@@ -183,8 +183,8 @@ export default function SolanaAchievementsPage() {
       console.log('📍 Metadata PDA:', metadataPDA.toString());
       console.log('📍 Token Account:', tokenAccount.toString());
 
-      // 构建指令数据
-      // mint_achievement discriminator + 参数
+      // Build instruction data
+      // mint_achievement discriminator + parameters
       const discriminator = Buffer.from([0xdf, 0x73, 0xf9, 0xc1, 0x65, 0x41, 0xeb, 0x88]);
       const achievementIdData = serializeString(achievementId);
       const nameData = serializeString(achievement.name);
@@ -199,9 +199,9 @@ export default function SolanaAchievementsPage() {
         uriData,
       ]);
 
-      console.log('📦 指令数据长度:', instructionData.length);
+      console.log('📦 Instruction data length:', instructionData.length);
 
-      // 创建指令
+      // Create instruction
       const instruction = new TransactionInstruction({
         keys: [
           { pubkey: achievementStatePDA, isSigner: false, isWritable: true },
@@ -220,56 +220,56 @@ export default function SolanaAchievementsPage() {
         data: instructionData,
       });
 
-      // 创建交易
+      // Create transaction
       const transaction = new Transaction().add(instruction);
       transaction.feePayer = wallet.publicKey;
 
-      // 获取最新的blockhash
+      // Get latest blockhash
       const { blockhash } = await connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
 
-      // 部分签名 mint keypair
+      // Partial sign mint keypair
       transaction.partialSign(mintKeypair);
 
-      console.log('📤 发送交易到Phantom签名...');
+      console.log('📤 Send transaction to Phantom for signing...');
 
-      // 使用Phantom签名并发送
+      // Sign and send with Phantom
       const signedTx = await window.solana.signTransaction(transaction);
       const signature = await connection.sendRawTransaction(signedTx.serialize());
 
-      console.log('⏳ 等待交易确认...');
+      console.log('⏳ Waiting for transaction confirmation...');
       await connection.confirmTransaction(signature);
 
-      console.log('✅ NFT Mint成功！');
-      console.log('🔗 交易签名:', signature);
+      console.log('✅ NFT Minted successfully！');
+      console.log('🔗 Transaction signature:', signature);
       console.log('🪙 NFT Mint:', mintKeypair.publicKey.toString());
 
-      // 更新已领取状态
+      // Update claimed status
       setClaimedStatus(prev => ({ ...prev, [achievementId]: true }));
 
-      alert(`🎉 成就 NFT "${achievement.name}" 领取成功！\n\n${achievement.icon}\n\n交易签名：\n${signature}\n\nNFT Mint:\n${mintKeypair.publicKey.toString()}\n\n在Solana Explorer查看：\nhttps://explorer.solana.com/tx/${signature}?cluster=devnet\n\n在Phantom钱包的"Collectibles"标签页查看你的NFT！`);
+      alert(`🎉 Achievement NFT "${achievement.name}" claimed successfully!\n\n${achievement.icon}\n\nTransaction signature:\n${signature}\n\nNFT Mint:\n${mintKeypair.publicKey.toString()}\n\nView on Solana Explorer:\nhttps://explorer.solana.com/tx/${signature}?cluster=devnet\n\nCheck your NFT in Phantom wallet "Collectibles" tab!`);
 
     } catch (error) {
-      console.error('❌ Mint失败:', error);
+      console.error('❌ Mint failed:', error);
 
       let errorMessage = error.message;
 
-      // 解析错误
+      // Parse error
       if (error.message.includes('0x0')) {
-        errorMessage = '成就已经被领取过了！';
+        errorMessage = 'Achievement already claimed!';
       } else if (error.message.includes('insufficient')) {
-        errorMessage = 'SOL余额不足！请先获取测试SOL。';
+        errorMessage = 'Insufficient SOL balance! Please get test SOL first.';
       } else if (error.message.includes('User rejected')) {
-        errorMessage = '交易被取消';
+        errorMessage = 'Transaction cancelled';
       } else if (error.message.includes('already in use')) {
-        errorMessage = '成就已被领取！';
+        errorMessage = 'Achievement already claimed!';
       } else if (error.logs) {
-        console.log('交易日志:', error.logs);
+        console.log('Transaction logs:', error.logs);
         const errorLog = error.logs.find(log => log.includes('Error'));
         if (errorLog) errorMessage = errorLog;
       }
 
-      alert(`❌ Mint失败：${errorMessage}\n\n详细信息请查看控制台`);
+      alert(`❌ Mint failed: ${errorMessage}\n\nSee console for details`);
     } finally {
       setClaiming(prev => ({ ...prev, [achievementId]: false }));
     }
@@ -297,7 +297,7 @@ export default function SolanaAchievementsPage() {
             color: '#fee',
             marginBottom: '1rem',
           }}>
-            UW-Madison校园成就系统 (Solana版本 - 真实NFT)
+            UW-Madison Campus Achievement System (Solana Version - Real NFT)
           </p>
           <div style={{
             display: 'flex',
@@ -343,7 +343,7 @@ export default function SolanaAchievementsPage() {
               onMouseOut={(e) => e.target.style.background = '#9333ea'}
             >
               <span>👻</span>
-              <span>连接Phantom钱包</span>
+              <span>Connect Phantom Wallet</span>
             </button>
           ) : (
             <div>
@@ -356,7 +356,7 @@ export default function SolanaAchievementsPage() {
               }}>
                 <div>
                   <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
-                    ✅ 已连接 Phantom (Devnet)
+                    ✅ Connected to Phantom (Devnet)
                   </p>
                   <p style={{
                     fontFamily: 'monospace',
@@ -380,7 +380,7 @@ export default function SolanaAchievementsPage() {
                   onMouseOver={(e) => e.target.style.background = '#d1d5db'}
                   onMouseOut={(e) => e.target.style.background = '#e5e7eb'}
                 >
-                  断开连接
+                  Disconnect
                 </button>
               </div>
             </div>
@@ -407,6 +407,9 @@ export default function SolanaAchievementsPage() {
                   boxShadow: '0 10px 15px rgba(0,0,0,0.1)',
                   padding: '1.5rem',
                   transition: 'box-shadow 0.3s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
                 }}
                 onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 20px 25px rgba(0,0,0,0.15)'}
                 onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 10px 15px rgba(0,0,0,0.1)'}
@@ -459,7 +462,7 @@ export default function SolanaAchievementsPage() {
                     if (!isClaiming && wallet && !isClaimed) e.target.style.background = '#dc2626';
                   }}
                 >
-                  {isClaimed ? '✅ 已领取' : (isClaiming ? '⏳ 铸造中...' : (wallet ? '🎨 铸造 NFT' : '🔒 请先连接钱包'))}
+                  {isClaimed ? '✅ Claimed' : (isClaiming ? '⏳ Minting...' : (wallet ? '🎨 Mint NFT' : '🔒 Connect wallet first'))}
                 </button>
               </div>
             );
@@ -473,13 +476,13 @@ export default function SolanaAchievementsPage() {
           fontSize: '0.875rem',
         }}>
           <p style={{ marginBottom: '0.5rem' }}>
-            💡 <strong>这是真实的Solana NFT！</strong> 铸造后可以在 Phantom 钱包的 "Collectibles" 标签页查看
+            💡 <strong>This is a real Solana NFT！</strong> After minting, view in Phantom wallet "Collectibles" tab
           </p>
           <p style={{ fontSize: '0.75rem', opacity: 0.75, marginBottom: '0.5rem' }}>
             Program ID: {PROGRAM_ID.toString()}
           </p>
           <p style={{ fontSize: '0.75rem', opacity: 0.75 }}>
-            查看交易: <a href="https://explorer.solana.com/?cluster=devnet" target="_blank" rel="noopener noreferrer" style={{ color: '#fcc', textDecoration: 'underline' }}>Solana Explorer (Devnet)</a>
+            View transaction: <a href="https://explorer.solana.com/?cluster=devnet" target="_blank" rel="noopener noreferrer" style={{ color: '#fcc', textDecoration: 'underline' }}>Solana Explorer (Devnet)</a>
           </p>
         </footer>
       </div>

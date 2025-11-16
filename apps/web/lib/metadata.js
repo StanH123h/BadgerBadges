@@ -1,28 +1,28 @@
 /**
- * 生成 NFT Metadata URI (使用 data URI，无需 IPFS)
+ * Generate NFT Metadata URI (using data URI, no IPFS needed)
  */
 
-// 基于编号生成确定的随机颜色
+// Generate deterministic random color based on number
 function generateRandomColor(seed) {
-  // 使用简单的哈希算法生成确定的"随机"颜色
+  // Use simple hash algorithm to generate deterministic "random" color
   const hash = (seed * 2654435761) % 2147483648;
-  const hue = hash % 360; // 色相 0-360
-  const saturation = 60 + (hash % 30); // 饱和度 60-90
-  const lightness = 40 + (hash % 20); // 亮度 40-60
+  const hue = hash % 360; // Hue 0-360
+  const saturation = 60 + (hash % 30); // Saturation 60-90
+  const lightness = 40 + (hash % 20); // Lightness 40-60
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
-// 生成渐变背景
+// Generate gradient background
 function generateGradient(mintNumber) {
   const color1 = generateRandomColor(mintNumber);
-  const color2 = generateRandomColor(mintNumber * 7 + 13); // 不同的 seed
+  const color2 = generateRandomColor(mintNumber * 7 + 13); // Different seed
   return `<linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
     <stop offset="0%" style="stop-color:${color1}"/>
     <stop offset="100%" style="stop-color:${color2}"/>
   </linearGradient>`;
 }
 
-// 生成个性化 SVG (根据编号)
+// Generate personalized SVG (based on number)
 export function generateSVGDataURI(icon, name, mintNumber) {
   const gradient = generateGradient(mintNumber);
 
@@ -36,9 +36,9 @@ export function generateSVGDataURI(icon, name, mintNumber) {
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 }
 
-// 生成 metadata URI（返回 localhost API URL，开发用）
+// Generate metadata URI (returns localhost API URL for development)
 export function generateMetadataURI(achievement, mintNumber) {
-  // 开发环境直接用 localhost
-  // 注意：部署时需要改成真实的公网 URL
+  // Development environment uses localhost directly
+  // Note: Change to real public URL when deploying
   return `http://localhost:3001/api/nft-metadata?id=${achievement.id}&n=${mintNumber}`;
 }

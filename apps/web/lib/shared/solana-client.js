@@ -1,6 +1,6 @@
 /**
- * Solana客户端工具
- * 用于与Solana区块链和Achievements程序交互
+ * Solana Client Utilities
+ * For interacting with Solana blockchain and Achievements program
  */
 
 import {
@@ -39,7 +39,7 @@ export const SOLANA_CONFIG = {
   },
 };
 
-// Metaplex Metadata Program ID (固定)
+// Metaplex Metadata Program ID (fixed)
 export const METADATA_PROGRAM_ID = new PublicKey(
   'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
 );
@@ -47,7 +47,7 @@ export const METADATA_PROGRAM_ID = new PublicKey(
 // ========== CLIENT SETUP ==========
 
 /**
- * 创建Solana连接
+ * Create Solana connection
  */
 export function createConnection(network = 'devnet') {
   const config = SOLANA_CONFIG[network];
@@ -55,14 +55,14 @@ export function createConnection(network = 'devnet') {
 }
 
 /**
- * 获取Program ID
+ * Get Program ID
  */
 export function getProgramId(network = 'devnet') {
   return new PublicKey(SOLANA_CONFIG[network].programId);
 }
 
 /**
- * 获取Achievement State PDA
+ * Get Achievement State PDA
  */
 export async function getAchievementStatePda(programId) {
   const [pda] = await PublicKey.findProgramAddress(
@@ -73,7 +73,7 @@ export async function getAchievementStatePda(programId) {
 }
 
 /**
- * 获取User Achievement PDA
+ * Get User Achievement PDA
  */
 export async function getUserAchievementPda(
   userPubkey,
@@ -94,7 +94,7 @@ export async function getUserAchievementPda(
 // ========== PROGRAM INTERACTIONS ==========
 
 /**
- * 初始化Achievements程序
+ * Initialize Achievements program
  */
 export async function initializeProgram(
   connection,
@@ -106,8 +106,8 @@ export async function initializeProgram(
     commitment: 'confirmed',
   });
 
-  // 这里需要加载IDL (Interface Definition Language)
-  // 实际使用时需要从anchor build生成的IDL
+  // Need to load IDL (Interface Definition Language) here
+  // In actual use, IDL should be generated from anchor build
   const program = new Program(IDL, programId, provider);
 
   const achievementStatePda = await getAchievementStatePda(programId);
@@ -125,7 +125,7 @@ export async function initializeProgram(
 }
 
 /**
- * Mint成就NFT
+ * Mint achievement NFT
  */
 export async function mintAchievement(
   connection,
@@ -142,10 +142,10 @@ export async function mintAchievement(
 
   const program = new Program(IDL, programId, provider);
 
-  // 生成新的mint账户
+  // Generate new mint account
   const mintKeypair = web3.Keypair.generate();
 
-  // 获取PDAs
+  // Get PDAs
   const achievementStatePda = await getAchievementStatePda(programId);
   const userAchievementPda = await getUserAchievementPda(
     wallet.publicKey,
@@ -153,13 +153,13 @@ export async function mintAchievement(
     programId
   );
 
-  // 获取associated token账户
+  // Get associated token account
   const tokenAccount = await getAssociatedTokenAddress(
     mintKeypair.publicKey,
     wallet.publicKey
   );
 
-  // 将achievementId从字符串转为bytes32
+  // Convert achievementId from string to bytes32
   const achievementIdBytes = ethers.utils.arrayify(
     ethers.utils.id(achievementId)
   );
@@ -195,7 +195,7 @@ export async function mintAchievement(
 }
 
 /**
- * 创建NFT metadata
+ * Create NFT metadata
  */
 export async function createMetadata(
   connection,
@@ -214,7 +214,7 @@ export async function createMetadata(
 
   const achievementStatePda = await getAchievementStatePda(programId);
 
-  // 获取metadata PDA (Metaplex标准)
+  // Get metadata PDA (Metaplex standard)
   const [metadataPda] = await PublicKey.findProgramAddress(
     [
       Buffer.from('metadata'),
@@ -242,7 +242,7 @@ export async function createMetadata(
 }
 
 /**
- * 检查用户是否已经claim某个成就
+ * Check if user has already claimed an achievement
  */
 export async function hasUserClaimed(
   connection,
@@ -263,8 +263,8 @@ export async function hasUserClaimed(
       return false;
     }
 
-    // 解析账户数据检查is_claimed字段
-    // (这里简化处理，实际应该用Program.account.userAchievement.fetch)
+    // Parse account data to check is_claimed field
+    // (simplified here, should use Program.account.userAchievement.fetch in practice)
     return accountInfo.data.length > 0;
   } catch (error) {
     console.error('Error checking claim status:', error);
@@ -273,7 +273,7 @@ export async function hasUserClaimed(
 }
 
 /**
- * 获取用户的所有成就NFT
+ * Get all achievement NFTs for a user
  */
 export async function getUserAchievements(
   connection,
@@ -288,11 +288,11 @@ export async function getUserAchievements(
 
   const program = new Program(IDL, programId, provider);
 
-  // 获取所有UserAchievement账户
+  // Get all UserAchievement accounts
   const achievements = await program.account.userAchievement.all([
     {
       memcmp: {
-        offset: 8, // 跳过discriminator
+        offset: 8, // Skip discriminator
         bytes: userPubkey.toBase58(),
       },
     },
@@ -307,7 +307,7 @@ export async function getUserAchievements(
 }
 
 // ========== PLACEHOLDER IDL ==========
-// 实际IDL需要从 anchor build 后的 target/idl/achievements.json 获取
+// Actual IDL should be obtained from target/idl/achievements.json after anchor build
 
 const IDL = {
   version: '0.1.0',

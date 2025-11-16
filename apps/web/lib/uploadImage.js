@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-// 基于编号生成确定的随机颜色
+// Generate deterministic random color based on number
 function generateRandomColor(seed) {
   const hash = (seed * 2654435761) % 2147483648;
   const hue = hash % 360;
@@ -9,7 +9,7 @@ function generateRandomColor(seed) {
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
-// 生成 SVG 字符串
+// Generate SVG string
 function generateSVG(icon, mintNumber) {
   const color1 = generateRandomColor(mintNumber);
   const color2 = generateRandomColor(mintNumber * 7 + 13);
@@ -27,10 +27,10 @@ function generateSVG(icon, mintNumber) {
 </svg>`;
 }
 
-// 上传 NFT 图片和 metadata 到 Supabase Storage
+// Upload NFT image and metadata to Supabase Storage
 export async function uploadNFTAssets(achievementId, achievement, mintNumber) {
   try {
-    // 1. 生成并上传 SVG 图片
+    // 1. Generate and upload SVG image
     const svg = generateSVG(achievement.icon, mintNumber);
     const imageFileName = `${achievementId}-${mintNumber}.svg`;
 
@@ -42,18 +42,18 @@ export async function uploadNFTAssets(achievementId, achievement, mintNumber) {
       });
 
     if (imageError) {
-      console.error('上传图片失败:', imageError);
+      console.error('Image upload failed:', imageError);
       throw imageError;
     }
 
-    // 获取图片公网 URL
+    // Get image public URL
     const { data: { publicUrl: imageUrl } } = supabase.storage
       .from('nft-images')
       .getPublicUrl(imageFileName);
 
-    console.log('✅ 图片上传成功:', imageUrl);
+    console.log('✅ Image uploaded successfully:', imageUrl);
 
-    // 2. 生成 metadata JSON
+    // 2. Generate metadata JSON
     const metadata = {
       name: `${achievement.name} #${mintNumber}`,
       symbol: "BADGE",
@@ -66,7 +66,7 @@ export async function uploadNFTAssets(achievementId, achievement, mintNumber) {
       ],
     };
 
-    // 3. 上传 metadata JSON
+    // 3. Upload metadata JSON
     const metadataFileName = `${achievementId}-${mintNumber}.json`;
     const metadataJSON = JSON.stringify(metadata);
 
@@ -78,23 +78,23 @@ export async function uploadNFTAssets(achievementId, achievement, mintNumber) {
       });
 
     if (metadataError) {
-      console.error('上传 metadata 失败:', metadataError);
+      console.error('Metadata upload failed:', metadataError);
       throw metadataError;
     }
 
-    // 获取 metadata 公网 URL
+    // Get metadata public URL
     const { data: { publicUrl: metadataUrl } } = supabase.storage
       .from('nft-images')
       .getPublicUrl(metadataFileName);
 
-    console.log('✅ Metadata 上传成功:', metadataUrl);
+    console.log('✅ Metadata uploaded successfully:', metadataUrl);
 
     return {
       imageUrl,
       metadataUrl
     };
   } catch (error) {
-    console.error('❌ 上传资源出错:', error);
+    console.error('❌ Asset upload error:', error);
     throw error;
   }
 }

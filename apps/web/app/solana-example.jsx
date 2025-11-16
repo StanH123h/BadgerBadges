@@ -1,7 +1,7 @@
 /**
- * Solana版本的成就claim页面示例
+ * Solana version achievements claim page example
  *
- * 使用Phantom钱包 + @solana/web3.js
+ * Using Phantom Wallet + @solana/web3.js
  */
 
 'use client';
@@ -18,7 +18,7 @@ import { ACHIEVEMENTS } from '../lib/shared';
 
 export default function SolanaAchievementsPage() {
   const [wallet, setWallet] = useState(null);
-  const [network] = useState('devnet'); // 或 'localnet'
+  const [network] = useState('devnet'); // or 'localnet'
   const [connection, setConnection] = useState(null);
   const [claiming, setClaiming] = useState(false);
 
@@ -30,15 +30,15 @@ export default function SolanaAchievementsPage() {
 
   const connectWallet = async () => {
     try {
-      // 检查Phantom钱包
+      // Check Phantom wallet
       const { solana } = window;
 
       if (!solana?.isPhantom) {
-        alert('请安装Phantom钱包！https://phantom.app/');
+        alert('Please install Phantom Wallet! https://phantom.app/');
         return;
       }
 
-      // 连接钱包
+      // Connect wallet
       const response = await solana.connect();
       console.log('Connected to wallet:', response.publicKey.toString());
 
@@ -49,7 +49,7 @@ export default function SolanaAchievementsPage() {
       });
     } catch (error) {
       console.error('Failed to connect wallet:', error);
-      alert('连接钱包失败：' + error.message);
+      alert('Failed to connect wallet: ' + error.message);
     }
   };
 
@@ -64,14 +64,14 @@ export default function SolanaAchievementsPage() {
 
   const handleClaim = async (achievementId) => {
     if (!wallet) {
-      alert('请先连接Phantom钱包！');
+      alert('Please connect Phantom Wallet first!');
       return;
     }
 
     setClaiming(true);
 
     try {
-      // 1. 检查是否已经claim过
+      // 1. Check if already claimed
       const programId = getProgramId(network);
       const alreadyClaimed = await hasUserClaimed(
         connection,
@@ -81,19 +81,19 @@ export default function SolanaAchievementsPage() {
       );
 
       if (alreadyClaimed) {
-        alert('你已经领取过这个成就了！');
+        alert('You have already claimed this achievement!');
         setClaiming(false);
         return;
       }
 
-      // 2. 获取用户位置（如果需要）
+      // 2. Get user location (if needed)
       const position = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject);
       });
 
       const { latitude, longitude } = position.coords;
 
-      // 3. 调用后端API验证并获取签名
+      // 3. Call backend API to validate and get signature
       const response = await fetch('/api/claim-solana', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -108,14 +108,14 @@ export default function SolanaAchievementsPage() {
       const data = await response.json();
 
       if (!data.success) {
-        alert('验证失败：' + data.error);
+        alert('Validation failed: ' + data.error);
         setClaiming(false);
         return;
       }
 
       const { nonce, deadline, signature } = data;
 
-      // 4. 调用Solana程序mint NFT
+      // 4. Call Solana program to mint NFT
       console.log('🚀 Minting achievement NFT...');
 
       const result = await mintAchievement(
@@ -132,20 +132,20 @@ export default function SolanaAchievementsPage() {
       console.log('Transaction:', result.transaction);
       console.log('Mint:', result.mint);
 
-      alert(`成就领取成功！🎉\n\nMint: ${result.mint}\n\nTx: ${result.transaction}`);
+      alert(`Achievement claimed successfully! 🎉\n\nMint: ${result.mint}\n\nTx: ${result.transaction}`);
 
-      // 5. 刷新页面状态
-      // TODO: 更新UI显示已领取
+      // 5. Refresh page state
+      // TODO: Update UI to show claimed
 
     } catch (error) {
       console.error('Claim failed:', error);
-      alert('领取失败：' + error.message);
+      alert('Claim failed: ' + error.message);
     } finally {
       setClaiming(false);
     }
   };
 
-  // ========== REQUEST AIRDROP (测试用) ==========
+  // ========== REQUEST AIRDROP (for testing) ==========
 
   const requestAirdrop = async () => {
     if (!wallet || !connection) return;
@@ -158,10 +158,10 @@ export default function SolanaAchievementsPage() {
       );
 
       await connection.confirmTransaction(signature);
-      alert('Airdrop成功！获得1 SOL');
+      alert('Airdrop successful! Received 1 SOL');
     } catch (error) {
       console.error('Airdrop failed:', error);
-      alert('Airdrop失败（可能已达到每日限额）');
+      alert('Airdrop failed (may have reached daily limit)');
     }
   };
 
@@ -176,7 +176,7 @@ export default function SolanaAchievementsPage() {
             🦡 BadgerBadge Achievements
           </h1>
           <p className="text-xl text-red-100">
-            UW-Madison校园成就系统 (Solana版本)
+            UW-Madison Campus Achievement System (Solana Version)
           </p>
           <p className="text-sm text-red-200 mt-2">
             Network: {network.toUpperCase()}
@@ -190,13 +190,13 @@ export default function SolanaAchievementsPage() {
               onClick={connectWallet}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-lg text-lg transition"
             >
-              连接Phantom钱包
+              Connect Phantom Wallet
             </button>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">已连接钱包</p>
+                  <p className="text-sm text-gray-600">Wallet Connected</p>
                   <p className="font-mono text-sm">
                     {wallet.publicKey.toString().slice(0, 8)}...
                     {wallet.publicKey.toString().slice(-8)}
@@ -206,7 +206,7 @@ export default function SolanaAchievementsPage() {
                   onClick={disconnectWallet}
                   className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
                 >
-                  断开连接
+                  Disconnect
                 </button>
               </div>
 
@@ -215,7 +215,7 @@ export default function SolanaAchievementsPage() {
                   onClick={requestAirdrop}
                   className="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded"
                 >
-                  领取测试SOL (Devnet Airdrop)
+                  Request Test SOL (Devnet Airdrop)
                 </button>
               )}
             </div>
@@ -249,7 +249,7 @@ export default function SolanaAchievementsPage() {
                     : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
-                {claiming ? '领取中...' : wallet ? '领取成就' : '请先连接钱包'}
+                {claiming ? 'Claiming...' : wallet ? 'Claim Achievement' : 'Connect Wallet First'}
               </button>
             </div>
           ))}
@@ -258,17 +258,17 @@ export default function SolanaAchievementsPage() {
         {/* Info Footer */}
         <footer className="mt-12 text-center text-white text-sm">
           <p>
-            💡 提示：Solana上的transaction fee约为$0.0001，几乎免费！
+            💡 Tip: Transaction fees on Solana are approximately $0.0001, almost free!
           </p>
           <p className="mt-2">
-            需要帮助？查看{' '}
+            Need help? Check out{' '}
             <a
               href="https://docs.solana.com"
               target="_blank"
               rel="noopener noreferrer"
               className="underline"
             >
-              Solana文档
+              Solana Documentation
             </a>
           </p>
         </footer>

@@ -1,7 +1,7 @@
 /**
- * Solana版本的成就claim API
+ * Solana version achievement claim API
  *
- * 验证用户资格并生成Ed25519签名
+ * Validate user eligibility and generate Ed25519 signature
  */
 
 import { NextResponse } from 'next/server';
@@ -9,11 +9,11 @@ import { Keypair } from '@solana/web3.js';
 import nacl from 'tweetnacl';
 import { getAchievementById } from '../../../lib/shared';
 
-// 从环境变量加载backend signer
-// Solana使用Ed25519密钥对，需要58字节的私钥
+// Load backend signer from environment variables
+// Solana uses Ed25519 keypair, requires 58-byte private key
 const BACKEND_SIGNER_KEY = process.env.BACKEND_SIGNER_KEY;
 
-// 内存存储nonce（生产环境应该用数据库）
+// In-memory nonce storage (production should use database)
 const usedNonces = new Set();
 
 /**
@@ -33,7 +33,7 @@ export async function POST(request) {
     const body = await request.json();
     const { achievementId, userPubkey, latitude, longitude, eventCode } = body;
 
-    // 1. 验证必需参数
+    // 1. Validate required parameters
     if (!achievementId || !userPubkey) {
       return NextResponse.json(
         { success: false, error: 'Missing required parameters' },
@@ -41,7 +41,7 @@ export async function POST(request) {
       );
     }
 
-    // 2. 检查backend signer配置
+    // 2. Check backend signer configuration
     if (!BACKEND_SIGNER_KEY) {
       return NextResponse.json(
         { success: false, error: 'Backend signer not configured' },
@@ -49,7 +49,7 @@ export async function POST(request) {
       );
     }
 
-    // 3. 获取成就定义
+    // 3. Get achievement definition
     const achievement = getAchievementById(achievementId);
     if (!achievement) {
       return NextResponse.json(
@@ -58,7 +58,7 @@ export async function POST(request) {
       );
     }
 
-    // 4. 验证资格
+    // 4. Validate eligibility
     const isEligible = await validateEligibility(
       achievement,
       latitude,
@@ -73,28 +73,28 @@ export async function POST(request) {
       );
     }
 
-    // 5. 生成nonce和deadline
+    // 5. Generate nonce and deadline
     const nonce = generateNonce();
-    const deadline = Math.floor(Date.now() / 1000) + 5 * 60; // 5分钟有效期
+    const deadline = Math.floor(Date.now() / 1000) + 5 * 60; // 5 minute validity
 
-    // 6. 创建签名消息
-    // 消息格式：userPubkey + achievementId + nonce + deadline
+    // 6. Create signature message
+    // Message format: userPubkey + achievementId + nonce + deadline
     const message = createMessage(userPubkey, achievementId, nonce, deadline);
 
-    // 7. 使用Ed25519签名
+    // 7. Sign with Ed25519
     const signature = signMessage(message, BACKEND_SIGNER_KEY);
 
-    // 8. 记录nonce
+    // 8. Record nonce
     usedNonces.add(nonce);
 
-    // 9. 返回签名
+    // 9. Return signature
     return NextResponse.json({
       success: true,
       achievementId,
       nonce,
       deadline,
       signature: Buffer.from(signature).toString('hex'),
-      message: '验证通过！请确认交易以mint NFT',
+      message: 'Validation passed! Confirm transaction to mint NFT',
     });
   } catch (error) {
     console.error('Claim API error:', error);
@@ -107,14 +107,14 @@ export async function POST(request) {
 
 /**
  * GET /api/claim-solana
- * 健康检查
+ * Health check
  */
 export async function GET() {
   try {
     let signerAddress = null;
 
     if (BACKEND_SIGNER_KEY) {
-      // 从私钥恢复Keypair
+      // Recover Keypair from private key
       const secretKey = bs58.decode(BACKEND_SIGNER_KEY);
       const keypair = Keypair.fromSecretKey(secretKey);
       signerAddress = keypair.publicKey.toString();
@@ -138,14 +138,14 @@ export async function GET() {
 // ========== HELPER FUNCTIONS ==========
 
 /**
- * 验证用户是否有资格获得成就
+ * Validate if user is eligible for achievement
  */
 async function validateEligibility(achievement, latitude, longitude, eventCode) {
   const rules = achievement.validationRules;
 
-  // 位置验证
+  // Location validation
   if (rules.location) {
-    // 检查是否在范围内
+    // Check if within bounds
     if (rules.location.minLat && rules.location.maxLat) {
       if (
         latitude < rules.location.minLat ||
@@ -153,11 +153,11 @@ async function validateEligibility(achievement, latitude, longitude, eventCode) 
         longitude < rules.location.minLng ||
         longitude > rules.location.maxLng
       ) {
-        return { valid: false, reason: '你不在要求的位置范围内' };
+        return { valid: false, reason: 'You are not within the required location bounds' };
       }
     }
 
-    // 检查半径
+    // Check radius
     if (rules.location.radiusMeters) {
       const distance = calculateDistance(
         latitude,
@@ -169,22 +169,22 @@ async function validateEligibility(achievement, latitude, longitude, eventCode) 
       if (distance > rules.location.radiusMeters) {
         return {
           valid: false,
-          reason: `你距离目标地点${Math.round(distance)}米，需要在${rules.location.radiusMeters}米范围内`,
+          reason: `You are ${Math.round(distance)} meters from target location, need to be within ${rules.location.radiusMeters} meters`,
         };
       }
     }
   }
 
-  // 事件代码验证
+  // Event code validation
   if (rules.requiresEventCode) {
-    // TODO: 从数据库验证事件代码
-    // 这里简化处理
+    // TODO: Validate event code from database
+    // Simplified here
     if (!eventCode) {
-      return { valid: false, reason: '需要提供活动代码' };
+      return { valid: false, reason: 'Event code required' };
     }
   }
 
-  // 时间窗口验证
+  // Time window validation
   if (rules.timeWindow) {
     const now = new Date();
     const hour = now.getHours();
@@ -193,16 +193,16 @@ async function validateEligibility(achievement, latitude, longitude, eventCode) 
       if (hour < rules.timeWindow.hourStart || hour >= rules.timeWindow.hourEnd) {
         return {
           valid: false,
-          reason: `需要在${rules.timeWindow.hourStart}:00-${rules.timeWindow.hourEnd}:00之间`,
+          reason: `Must be between ${rules.timeWindow.hourStart}:00-${rules.timeWindow.hourEnd}:00`,
         };
       }
     }
   }
 
-  // 天气验证
+  // Weather validation
   if (rules.type === 'weather') {
-    // TODO: 调用真实天气API
-    // 这里简化处理，直接通过
+    // TODO: Call real weather API
+    // Simplified here, pass directly
     console.log('⚠️ Weather validation not implemented (mock pass)');
   }
 
@@ -210,10 +210,10 @@ async function validateEligibility(achievement, latitude, longitude, eventCode) 
 }
 
 /**
- * 计算两点距离（米）
+ * Calculate distance between two points (meters)
  */
 function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371e3; // 地球半径（米）
+  const R = 6371e3; // Earth radius (meters)
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
@@ -229,14 +229,14 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * 生成随机nonce
+ * Generate random nonce
  */
 function generateNonce() {
   return Buffer.from(nacl.randomBytes(32)).toString('hex');
 }
 
 /**
- * 创建待签名消息
+ * Create message to sign
  */
 function createMessage(userPubkey, achievementId, nonce, deadline) {
   const message = Buffer.concat([
@@ -250,19 +250,19 @@ function createMessage(userPubkey, achievementId, nonce, deadline) {
 }
 
 /**
- * 使用Ed25519签名消息
+ * Sign message using Ed25519
  */
 function signMessage(message, secretKeyBase58) {
-  // 导入bs58来解码私钥
+  // Import bs58 to decode private key
   const bs58 = require('bs58');
 
-  // 解码私钥
+  // Decode private key
   const secretKey = bs58.decode(secretKeyBase58);
 
-  // 生成Keypair
+  // Generate Keypair
   const keypair = Keypair.fromSecretKey(secretKey);
 
-  // 签名
+  // Sign
   const signature = nacl.sign.detached(message, keypair.secretKey);
 
   return signature;

@@ -1,11 +1,11 @@
 /**
- * NFT 图片生成 API
- * 访问: /api/nft-image?id=RAINY_DAY_2025&n=1
+ * NFT Image Generation API
+ * Access: /api/nft-image?id=RAINY_DAY_2025&n=1
  */
 
 import { ACHIEVEMENTS } from '../../../lib/shared';
 
-// 基于编号生成确定的随机颜色
+// Generate deterministic random color based on number
 function generateRandomColor(seed) {
   const hash = (seed * 2654435761) % 2147483648;
   const hue = hash % 360;
@@ -19,17 +19,17 @@ export async function GET(request) {
   const achievementId = searchParams.get('id');
   const mintNumber = parseInt(searchParams.get('n') || '1');
 
-  // 查找成就
+  // Find achievement
   const achievement = ACHIEVEMENTS.find(a => a.id === achievementId);
   if (!achievement) {
     return new Response('Achievement not found', { status: 404 });
   }
 
-  // 生成渐变背景
+  // Generate gradient background
   const color1 = generateRandomColor(mintNumber);
   const color2 = generateRandomColor(mintNumber * 7 + 13);
 
-  // 生成SVG
+  // Generate SVG
   const svg = `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -45,7 +45,7 @@ export async function GET(request) {
   return new Response(svg, {
     headers: {
       'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'public, max-age=31536000, immutable', // 缓存1年
+      'Cache-Control': 'public, max-age=31536000, immutable', // Cache for 1 year
     },
   });
 }
