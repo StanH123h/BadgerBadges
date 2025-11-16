@@ -344,7 +344,7 @@ export default function HomePage() {
               key={achievement.id}
               style={{
                 position: 'relative',
-                border: isTestNFT ? '2px dashed #9333ea' : '2px solid #e0e0e0',
+                border: '2px solid #e0e0e0',
                 borderRadius: '8px',
                 padding: '1.5rem',
                 background: isTestNFT ? '#faf5ff' : (isClaimed ? '#f0f9ff' : 'white'),
@@ -469,7 +469,7 @@ export default function HomePage() {
         <ul style={{ color: '#666', lineHeight: '1.6' }}>
           <li>Make sure you have some ETH in your wallet to pay for gas fees</li>
           <li>Each regular achievement can only be claimed once per wallet</li>
-          <li><strong>🧪 Test Badge:</strong> Can be minted multiple times (up to 10,000 unique NFTs with different colors)</li>
+          <li><strong>🧪 Test:</strong> Can be minted multiple times (up to 10,000 unique NFTs with different colors)</li>
           <li>Location-based achievements require browser location access</li>
           <li>Event-based achievements require a valid event code (contact organizers)</li>
           <li>

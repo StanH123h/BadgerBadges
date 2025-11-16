@@ -143,9 +143,9 @@ export async function GET(request, { params }) {
     if (isTestNFT) {
       // Test NFT metadata
       const metadata = {
-        name: `Test Badge #${tokenIdNum}`,
+        name: `Test #${tokenIdNum}`,
         description: 'Repeatable test badge for development and testing purposes',
-        image: generateEmojiSVG('🧪', 'Test Badge', tokenId, true),
+        image: generateEmojiSVG('🧪', 'Test', tokenId, true),
         external_url: `http://localhost:3000`,
         attributes: [
           {

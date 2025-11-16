@@ -100,7 +100,7 @@ export const ACHIEVEMENTS = [
   // Test NFT - Repeatable for testing/development
   {
     id: 'TEST_BADGE',
-    name: 'Test Badge',
+    name: 'Test',
     description: 'Repeatable test badge for development and testing purposes',
     category: 'test',
     icon: '🧪',
