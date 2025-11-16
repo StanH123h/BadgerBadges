@@ -39,7 +39,10 @@
       "Bash(vercel login)",
       "Bash(vercel --yes)",
       "Bash(find:*)",
-      "Bash(vercel:*)"
+      "Bash(vercel:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)"
     ],
     "deny": [],
     "ask": []

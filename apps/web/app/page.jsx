@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Connection, PublicKey, SystemProgram, TransactionInstruction, Transaction, Keypair } from '@solana/web3.js';
 import { ACHIEVEMENTS } from '../lib/shared';
 import { uploadNFTAssets } from '../lib/uploadImage';
@@ -14,6 +14,10 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
 } from '@solana/spl-token';
+import { motion } from 'framer-motion';
+import { gsap } from 'gsap';
+import Tilt from 'react-parallax-tilt';
+import NFTBadge from '../components/NFTBadge';
 
 // Solana Configuration
 const PROGRAM_ID = new PublicKey('GcqYVPhMUUdqpBxVNcLK8otKGzWbxqWiMft2mcDvr7dZ');
@@ -24,7 +28,10 @@ export default function SolanaAchievementsPage() {
   const [wallet, setWallet] = useState(null);
   const [claiming, setClaiming] = useState({});
   const [claimedStatus, setClaimedStatus] = useState({}); // Track which achievements are claimed
+  const [mintedNFTs, setMintedNFTs] = useState([]); // Store minted NFTs for display
+  const [particles, setParticles] = useState([]); // Particle animation data
   const connection = useMemo(() => new Connection(RPC_URL, 'confirmed'), []);
+  const headerRef = useRef(null);
 
   // Check user claimed achievements
   const checkClaimedAchievements = async (userPublicKey) => {
@@ -247,6 +254,16 @@ export default function SolanaAchievementsPage() {
       // Update claimed status
       setClaimedStatus(prev => ({ ...prev, [achievementId]: true }));
 
+      // Add to minted NFTs for display
+      setMintedNFTs(prev => [...prev, {
+        achievement,
+        mintNumber,
+        imageUrl,
+        signature,
+        mint: mintKeypair.publicKey.toString(),
+        timestamp: Date.now(),
+      }]);
+
       alert(`🎉 Achievement NFT "${achievement.name}" claimed successfully!\n\n${achievement.icon}\n\nTransaction signature:\n${signature}\n\nNFT Mint:\n${mintKeypair.publicKey.toString()}\n\nView on Solana Explorer:\nhttps://explorer.solana.com/tx/${signature}?cluster=devnet\n\nCheck your NFT in Phantom wallet "Collectibles" tab!`);
 
     } catch (error) {
@@ -275,78 +292,214 @@ export default function SolanaAchievementsPage() {
     }
   };
 
+  // Header animation and particle generation
+  useEffect(() => {
+    if (headerRef.current) {
+      gsap.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -50 },
+        { opacity: 1, y: 0, duration: 1, ease: 'power3.out' }
+      );
+    }
+
+    // Generate particles on client side only
+    const generatedParticles = [...Array(20)].map((_, i) => ({
+      id: i,
+      width: Math.random() * 4 + 2,
+      height: Math.random() * 4 + 2,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      duration: Math.random() * 3 + 2,
+      delay: Math.random() * 2,
+    }));
+    setParticles(generatedParticles);
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(to bottom right, #c5050c, #9b0000)',
+      background: 'linear-gradient(135deg, #c5050c 0%, #9b0000 50%, #7a0000 100%)',
       padding: '2rem',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Animated background particles */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        opacity: 0.1,
+        pointerEvents: 'none',
+      }}>
+        {particles.map((particle) => (
+          <motion.div
+            key={particle.id}
+            style={{
+              position: 'absolute',
+              width: particle.width + 'px',
+              height: particle.height + 'px',
+              background: 'white',
+              borderRadius: '50%',
+              left: particle.left + '%',
+              top: particle.top + '%',
+            }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0.2, 0.8, 0.2],
+            }}
+            transition={{
+              duration: particle.duration,
+              repeat: Infinity,
+              delay: particle.delay,
+            }}
+          />
+        ))}
+      </div>
+
+      <div style={{ maxWidth: '1400px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
         {/* Header */}
-        <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <h1 style={{
-            fontSize: '3rem',
-            fontWeight: 'bold',
-            color: 'white',
-            marginBottom: '1rem',
-          }}>
+        <motion.header
+          ref={headerRef}
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          style={{ textAlign: 'center', marginBottom: '3rem' }}
+        >
+          <motion.h1
+            style={{
+              fontSize: '3.5rem',
+              fontWeight: 'bold',
+              color: 'white',
+              marginBottom: '1rem',
+              textShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            }}
+            animate={{
+              textShadow: [
+                '0 4px 20px rgba(255,255,255,0.2)',
+                '0 4px 30px rgba(255,255,255,0.4)',
+                '0 4px 20px rgba(255,255,255,0.2)',
+              ],
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
             🦡 BadgerBadge Achievements
-          </h1>
-          <p style={{
-            fontSize: '1.25rem',
-            color: '#fee',
-            marginBottom: '1rem',
-          }}>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            style={{
+              fontSize: '1.25rem',
+              color: '#fee',
+              marginBottom: '1rem',
+            }}
+          >
             UW-Madison Campus Achievement System (Solana Version - Real NFT)
-          </p>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '1rem',
-            fontSize: '0.875rem',
-            color: '#fcc',
-            flexWrap: 'wrap',
-          }}>
-            <span>🌐 Network: Devnet</span>
-            <span>⚡ Fee: ~$0.0001</span>
-            <span>🔗 On-Chain NFT</span>
-          </div>
-        </header>
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '1rem',
+              fontSize: '0.875rem',
+              color: '#fcc',
+              flexWrap: 'wrap',
+            }}
+          >
+            <motion.span
+              whileHover={{ scale: 1.1, color: '#fff' }}
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '20px',
+                cursor: 'default',
+              }}
+            >
+              🌐 Network: Devnet
+            </motion.span>
+            <motion.span
+              whileHover={{ scale: 1.1, color: '#fff' }}
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '20px',
+                cursor: 'default',
+              }}
+            >
+              ⚡ Fee: ~$0.0001
+            </motion.span>
+            <motion.span
+              whileHover={{ scale: 1.1, color: '#fff' }}
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '20px',
+                cursor: 'default',
+              }}
+            >
+              🔗 On-Chain NFT
+            </motion.span>
+          </motion.div>
+        </motion.header>
 
         {/* Wallet Section */}
-        <div style={{
-          background: 'white',
-          borderRadius: '0.5rem',
-          boxShadow: '0 10px 15px rgba(0,0,0,0.1)',
-          padding: '1.5rem',
-          marginBottom: '2rem',
-        }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7, duration: 0.5 }}
+          style={{
+            background: 'white',
+            borderRadius: '1rem',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+            padding: '1.5rem',
+            marginBottom: '3rem',
+            border: '2px solid rgba(197, 5, 12, 0.1)',
+          }}
+        >
           {!wallet ? (
-            <button
+            <motion.button
               onClick={connectWallet}
+              whileHover={{ scale: 1.02, boxShadow: '0 8px 20px rgba(147, 51, 234, 0.3)' }}
+              whileTap={{ scale: 0.98 }}
               style={{
                 width: '100%',
-                background: '#9333ea',
+                background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
                 color: 'white',
                 fontWeight: 'bold',
                 padding: '1rem 1.5rem',
-                borderRadius: '0.5rem',
+                borderRadius: '0.75rem',
                 fontSize: '1.125rem',
                 border: 'none',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.5rem',
+                gap: '0.75rem',
+                transition: 'all 0.3s',
               }}
-              onMouseOver={(e) => e.target.style.background = '#7e22ce'}
-              onMouseOut={(e) => e.target.style.background = '#9333ea'}
             >
-              <span>👻</span>
+              <motion.span
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                👻
+              </motion.span>
               <span>Connect Phantom Wallet</span>
-            </button>
+            </motion.button>
           ) : (
-            <div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -355,37 +508,50 @@ export default function SolanaAchievementsPage() {
                 gap: '1rem',
               }}>
                 <div>
-                  <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
+                  <motion.p
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}
+                  >
                     ✅ Connected to Phantom (Devnet)
-                  </p>
-                  <p style={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.875rem',
-                    background: '#f3f4f6',
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: '0.25rem',
-                  }}>
+                  </motion.p>
+                  <motion.p
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.875rem',
+                      background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.5rem',
+                      fontWeight: '600',
+                      border: '1px solid #d1d5db',
+                    }}
+                  >
                     {wallet.address.slice(0, 8)}...{wallet.address.slice(-8)}
-                  </p>
+                  </motion.p>
                 </div>
-                <button
+                <motion.button
                   onClick={disconnectWallet}
+                  whileHover={{ scale: 1.05, background: '#d1d5db' }}
+                  whileTap={{ scale: 0.95 }}
                   style={{
                     background: '#e5e7eb',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '0.25rem',
+                    padding: '0.75rem 1.25rem',
+                    borderRadius: '0.5rem',
                     border: 'none',
                     cursor: 'pointer',
+                    fontWeight: '600',
+                    transition: 'all 0.2s',
                   }}
-                  onMouseOver={(e) => e.target.style.background = '#d1d5db'}
-                  onMouseOut={(e) => e.target.style.background = '#e5e7eb'}
                 >
                   Disconnect
-                </button>
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         {/* Achievements Grid */}
         <div style={{
@@ -394,30 +560,87 @@ export default function SolanaAchievementsPage() {
           gap: '1.5rem',
           marginBottom: '3rem',
         }}>
-          {ACHIEVEMENTS.map((achievement) => {
+          {ACHIEVEMENTS.map((achievement, index) => {
             const isClaiming = claiming[achievement.id] || false;
             const isClaimed = claimedStatus[achievement.id] || false;
 
             return (
-              <div
+              <Tilt
                 key={achievement.id}
-                style={{
-                  background: 'white',
-                  borderRadius: '0.5rem',
-                  boxShadow: '0 10px 15px rgba(0,0,0,0.1)',
-                  padding: '1.5rem',
-                  transition: 'box-shadow 0.3s',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                }}
-                onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 20px 25px rgba(0,0,0,0.15)'}
-                onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 10px 15px rgba(0,0,0,0.1)'}
+                tiltMaxAngleX={15}
+                tiltMaxAngleY={15}
+                scale={1.02}
+                transitionSpeed={400}
+                glareEnable={true}
+                glareMaxOpacity={0.3}
+                glareColor="#ffffff"
+                glarePosition="all"
               >
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
+                  whileHover={{
+                    y: -8,
+                    boxShadow: '0 20px 40px rgba(197, 5, 12, 0.2)',
+                    transition: { duration: 0.2 }
+                  }}
+                  style={{
+                    background: 'white',
+                    borderRadius: '1rem',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                    padding: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    border: isClaimed ? '2px solid #10b981' : '2px solid transparent',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                {/* Claimed badge */}
+                {isClaimed && (
+                  <motion.div
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    style={{
+                      position: 'absolute',
+                      top: '1rem',
+                      right: '1rem',
+                      background: '#10b981',
+                      color: 'white',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                    }}
+                  >
+                    ✅ Claimed
+                  </motion.div>
+                )}
+
+                {/* Shimmer effect */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                    animation: 'shimmer 3s infinite',
+                  }}
+                />
+
                 <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                  <div style={{ fontSize: '4rem', marginBottom: '0.5rem' }}>
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    style={{ fontSize: '4rem', marginBottom: '0.5rem' }}
+                  >
                     {achievement.icon}
-                  </div>
+                  </motion.div>
                   <h3 style={{
                     fontSize: '1.5rem',
                     fontWeight: 'bold',
@@ -441,40 +664,137 @@ export default function SolanaAchievementsPage() {
                   </span>
                 </div>
 
-                <button
+                <motion.button
                   onClick={() => handleClaim(achievement.id)}
                   disabled={isClaiming || !wallet || isClaimed}
+                  whileHover={!isClaiming && wallet && !isClaimed ? { scale: 1.05, boxShadow: '0 8px 16px rgba(220, 38, 38, 0.3)' } : {}}
+                  whileTap={!isClaiming && wallet && !isClaimed ? { scale: 0.95 } : {}}
                   style={{
                     width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '0.5rem',
+                    padding: '1rem',
+                    borderRadius: '0.75rem',
                     fontWeight: 'bold',
                     color: 'white',
                     border: 'none',
                     cursor: isClaiming || !wallet || isClaimed ? 'not-allowed' : 'pointer',
-                    background: isClaimed ? '#10b981' : (isClaiming || !wallet ? '#9ca3af' : '#dc2626'),
-                    transition: 'background 0.3s',
-                  }}
-                  onMouseOver={(e) => {
-                    if (!isClaiming && wallet && !isClaimed) e.target.style.background = '#b91c1c';
-                  }}
-                  onMouseOut={(e) => {
-                    if (!isClaiming && wallet && !isClaimed) e.target.style.background = '#dc2626';
+                    background: isClaimed
+                      ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                      : (isClaiming || !wallet
+                        ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+                        : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'),
+                    boxShadow: isClaimed ? '0 4px 12px rgba(16, 185, 129, 0.3)' : '0 4px 12px rgba(0,0,0,0.1)',
+                    transition: 'all 0.3s',
                   }}
                 >
                   {isClaimed ? '✅ Claimed' : (isClaiming ? '⏳ Minting...' : (wallet ? '🎨 Mint NFT' : '🔒 Connect wallet first'))}
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
+              </Tilt>
             );
           })}
         </div>
 
+        {/* Minted NFTs Display Section */}
+        {mintedNFTs.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            style={{
+              marginTop: '4rem',
+              marginBottom: '3rem',
+            }}
+          >
+            <motion.h2
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              style={{
+                fontSize: '2.5rem',
+                fontWeight: 'bold',
+                color: 'white',
+                textAlign: 'center',
+                marginBottom: '2rem',
+                textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+              }}
+            >
+              🏆 Your Minted Badges
+            </motion.h2>
+
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '2rem',
+              justifyContent: 'center',
+              alignItems: 'flex-start',
+            }}>
+              {mintedNFTs.map((nft, index) => (
+                <motion.div
+                  key={nft.timestamp}
+                  initial={{ opacity: 0, scale: 0.5, rotateY: -180 }}
+                  animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+                  transition={{
+                    delay: index * 0.2,
+                    duration: 0.6,
+                    type: 'spring',
+                    stiffness: 100,
+                  }}
+                >
+                  <NFTBadge
+                    achievement={nft.achievement}
+                    mintNumber={nft.mintNumber}
+                    imageUrl={nft.imageUrl}
+                    signature={nft.signature}
+                  />
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Stats Section */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              style={{
+                marginTop: '2rem',
+                textAlign: 'center',
+                padding: '1.5rem',
+                background: 'rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '1rem',
+                border: '1px solid rgba(255,255,255,0.2)',
+              }}
+            >
+              <p style={{
+                color: 'white',
+                fontSize: '1.125rem',
+                fontWeight: 'bold',
+                marginBottom: '0.5rem',
+              }}>
+                Total Badges Collected: {mintedNFTs.length}
+              </p>
+              <p style={{
+                color: '#fcc',
+                fontSize: '0.875rem',
+              }}>
+                Keep claiming more achievements to grow your collection! 🚀
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+
         {/* Info Footer */}
-        <footer style={{
-          textAlign: 'center',
-          color: 'white',
-          fontSize: '0.875rem',
-        }}>
+        <motion.footer
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          style={{
+            textAlign: 'center',
+            color: 'white',
+            fontSize: '0.875rem',
+            marginTop: '3rem',
+          }}
+        >
           <p style={{ marginBottom: '0.5rem' }}>
             💡 <strong>This is a real Solana NFT！</strong> After minting, view in Phantom wallet "Collectibles" tab
           </p>
@@ -484,8 +804,33 @@ export default function SolanaAchievementsPage() {
           <p style={{ fontSize: '0.75rem', opacity: 0.75 }}>
             View transaction: <a href="https://explorer.solana.com/?cluster=devnet" target="_blank" rel="noopener noreferrer" style={{ color: '#fcc', textDecoration: 'underline' }}>Solana Explorer (Devnet)</a>
           </p>
-        </footer>
+        </motion.footer>
       </div>
+
+      {/* Global Styles for Animations */}
+      <style jsx global>{`
+        @keyframes shimmer {
+          0% {
+            left: -100%;
+          }
+          100% {
+            left: 200%;
+          }
+        }
+
+        @keyframes gradient-shift {
+          0%, 100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+
+        * {
+          scroll-behavior: smooth;
+        }
+      `}</style>
     </div>
   );
 }
